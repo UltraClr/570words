@@ -1077,17 +1077,20 @@ function switchMode(mode) {
 
 function onFilterChange() {
   currentSublist = parseInt(document.getElementById('sublist-filter').value);
+  localStorage.removeItem('awl570_fc_session');
   switchMode(currentMode);
 }
 
 function onStudyModeChange() {
   currentStudyMode = document.getElementById('study-mode').value;
+  localStorage.removeItem('awl570_fc_session');
   switchMode(currentMode);
 }
 
 function resetProgress() {
   if (confirm('确定要重置所有学习进度吗？此操作不可撤销。')) {
     progress = {};
+    localStorage.removeItem('awl570_fc_session');
     saveProgress();
     updateStats();
     switchMode(currentMode);
@@ -1115,7 +1118,35 @@ function markResult(idx, correct) {
 }
 
 // ============ FLASHCARD ============
-function initFlashcard() {
+function saveFcSession() {
+  const session = {
+    sublist: currentSublist,
+    studyMode: currentStudyMode,
+    queue: fcQueue,
+    index: fcIndex,
+    wrongWords: fcWrongWords,
+    reviewRound: fcReviewRound
+  };
+  localStorage.setItem('awl570_fc_session', JSON.stringify(session));
+}
+
+function restoreFcSession() {
+  const raw = localStorage.getItem('awl570_fc_session');
+  if (!raw) return false;
+  try {
+    const session = JSON.parse(raw);
+    if (session.sublist !== currentSublist || session.studyMode !== currentStudyMode) return false;
+    if (!session.queue || session.index >= session.queue.length) return false;
+    fcQueue = session.queue;
+    fcIndex = session.index;
+    fcWrongWords = session.wrongWords || [];
+    fcReviewRound = session.reviewRound || 0;
+    fcFlipped = false;
+    return true;
+  } catch (e) { return false; }
+}
+
+function buildFcQueue() {
   let indices = getFilteredIndices();
   // Prioritize: review due > unlearned > learning > mastered
   const reviewDue = indices.filter(i => isReviewDue(i));
@@ -1128,10 +1159,33 @@ function initFlashcard() {
   fcFlipped = false;
   fcWrongWords = [];
   fcReviewRound = 0;
+}
+
+function getOverallProgress() {
+  // Count how many words in current filter have been studied (learning, review, or mastered)
+  let indices = getFilteredIndices();
+  // Actually, getFilteredIndices already applies studyMode filter. We need ALL words for current sublist.
+  let all = [];
+  WORDS.forEach((w, i) => {
+    if (currentSublist > 0 && w.s !== currentSublist) return;
+    all.push(i);
+  });
+  if (all.length === 0) return { studied: 0, total: 0, pct: 0 };
+  const studied = all.filter(i => getWordStatus(i) !== 'unlearned').length;
+  return { studied, total: all.length, pct: Math.round(studied / all.length * 100) };
+}
+
+function initFlashcard() {
+  // Try to restore saved session first
+  if (!restoreFcSession()) {
+    buildFcQueue();
+  }
   showFlashcard();
 }
 
 function showFlashcard() {
+  const overall = getOverallProgress();
+
   if (fcIndex >= fcQueue.length) {
     // Round complete — check if there are wrong words to review
     const uniqueWrong = [...new Set(fcWrongWords)];
@@ -1144,7 +1198,7 @@ function showFlashcard() {
 
       // Show review round indicator
       document.getElementById('fc-counter').textContent = `🔄 错题复习 第${fcReviewRound}轮 · ${fcQueue.length} 词`;
-      document.getElementById('fc-progress').style.width = '0%';
+      document.getElementById('fc-progress').style.width = `${overall.pct}%`;
 
       const card = document.getElementById('flashcard');
       card.classList.remove('flipped');
@@ -1158,10 +1212,12 @@ function showFlashcard() {
       document.getElementById('fc-def').textContent = w.d;
       document.getElementById('fc-word-back').textContent = w.w;
       document.getElementById('fc-coll').innerHTML = (ex ? ex.c : []).length > 0 ? `<div class="coll-label">常用搭配</div>` + (ex ? ex.c : []).map(c => typeof c === 'string' ? `<span class="coll-tag">${c}</span>` : `<span class="coll-tag">${c.en}<span class="coll-zh">${c.zh ? ' ' + c.zh : ''}</span></span>`).join('') : '';
+      saveFcSession();
       return;
     }
 
-    // All done — no wrong words
+    // All done — no wrong words, clear session
+    localStorage.removeItem('awl570_fc_session');
     document.getElementById('fc-word').textContent = '已完成!';
     document.getElementById('fc-phonetic').innerHTML = '';
     document.getElementById('fc-def').textContent = '太棒了!';
@@ -1172,7 +1228,7 @@ function showFlashcard() {
       ? `学习完毕！经过 ${fcReviewRound} 轮复习，全部掌握！`
       : '本组学习完毕，全部正确！';
     document.getElementById('fc-counter').textContent = doneText;
-    document.getElementById('fc-progress').style.width = '100%';
+    document.getElementById('fc-progress').style.width = `${overall.pct}%`;
     return;
   }
   const idx = fcQueue[fcIndex % fcQueue.length];
@@ -1192,8 +1248,8 @@ function showFlashcard() {
   fcFlipped = false;
 
   const prefix = fcReviewRound > 0 ? `🔄 复习 · ` : '';
-  document.getElementById('fc-counter').textContent = `${prefix}${fcIndex + 1} / ${fcQueue.length}`;
-  document.getElementById('fc-progress').style.width = `${(fcIndex / fcQueue.length) * 100}%`;
+  document.getElementById('fc-counter').textContent = `${prefix}${fcIndex + 1} / ${fcQueue.length}  ·  总进度 ${overall.studied}/${overall.total}`;
+  document.getElementById('fc-progress').style.width = `${overall.pct}%`;
 }
 
 function flipCard() {
@@ -1213,6 +1269,7 @@ function markCard(known) {
   }
 
   fcIndex++;
+  saveFcSession();
   showFlashcard();
 }
 
