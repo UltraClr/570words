@@ -326,6 +326,13 @@
     cursor: pointer;
     transition: all 0.2s;
   }
+  .btn-prev {
+    background: #f1f5f9;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-prev:hover { background: #e2e8f0; transform: translateY(-1px); }
+  .btn-prev:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   .btn-know {
     background: var(--success);
     color: white;
@@ -895,11 +902,12 @@
       </div>
     </div>
     <div class="flashcard-actions">
+      <button class="btn-prev" onclick="prevCard()">← 上一个</button>
       <button class="btn-dunno" onclick="markCard(false)">不认识</button>
       <button class="btn-know" onclick="markCard(true)">认识</button>
     </div>
     <div class="shortcut-hint">
-      快捷键：<kbd>Space</kbd> 翻转 · <kbd>1</kbd> 不认识 · <kbd>2</kbd> 认识
+      快捷键：<kbd>←</kbd> 上一个 · <kbd>Space</kbd> 翻转 · <kbd>1</kbd> 不认识 · <kbd>2</kbd> 认识
     </div>
   </div>
 
@@ -1341,12 +1349,23 @@ function showFlashcard() {
   const prefix = fcReviewRound > 0 ? `🔄 复习 · ` : '';
   document.getElementById('fc-counter').textContent = `${prefix}${fcIndex + 1} / ${fcQueue.length}  ·  总进度 ${overall.studied}/${overall.total}`;
   document.getElementById('fc-progress').style.width = `${overall.pct}%`;
+
+  // Update prev button state
+  const prevBtn = document.querySelector('.btn-prev');
+  if (prevBtn) prevBtn.disabled = fcIndex <= 0;
 }
 
 function flipCard() {
   const card = document.getElementById('flashcard');
   fcFlipped = !fcFlipped;
   card.classList.toggle('flipped', fcFlipped);
+}
+
+function prevCard() {
+  if (fcIndex <= 0) return;
+  fcIndex--;
+  saveFcSession();
+  showFlashcard();
 }
 
 function markCard(known) {
@@ -1837,6 +1856,7 @@ function renderOriginal() {
 document.addEventListener('keydown', (e) => {
   if (currentMode === 'flashcard') {
     if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+    else if (e.key === 'ArrowLeft') prevCard();
     else if (e.key === '1') markCard(false);
     else if (e.key === '2') markCard(true);
   } else if (currentMode === 'spelling') {
