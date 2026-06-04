@@ -1092,14 +1092,15 @@ function init() {
     try {
       const session = JSON.parse(raw);
       if (session.sublist !== undefined) {
-        currentSublist = session.sublist;
-        document.getElementById('sublist-filter').value = session.sublist;
+        currentSublist = Number(session.sublist);
+        document.getElementById('sublist-filter').value = String(session.sublist);
       }
       if (session.studyMode !== undefined) {
-        currentStudyMode = session.studyMode;
-        document.getElementById('study-mode').value = session.studyMode;
+        currentStudyMode = String(session.studyMode);
+        document.getElementById('study-mode').value = String(session.studyMode);
       }
-    } catch (e) {}
+      console.log('[init] restored dropdowns: sublist=', currentSublist, 'mode=', currentStudyMode);
+    } catch (e) { console.log('[init] error parsing session:', e); }
   }
   updateStats();
   switchMode('flashcard');
@@ -1225,30 +1226,55 @@ function markResult(idx, correct) {
 // ============ FLASHCARD ============
 function saveFcSession() {
   const session = {
-    sublist: currentSublist,
-    studyMode: currentStudyMode,
+    sublist: Number(currentSublist),
+    studyMode: String(currentStudyMode),
     queue: fcQueue,
     index: fcIndex,
     wrongWords: fcWrongWords,
     reviewRound: fcReviewRound
   };
   localStorage.setItem('awl570_fc_session', JSON.stringify(session));
+  console.log('[saveFcSession] saved: sublist=', session.sublist, 'mode=', session.studyMode, 'index=', session.index, 'queueLen=', session.queue.length);
 }
 
 function restoreFcSession() {
   const raw = localStorage.getItem('awl570_fc_session');
-  if (!raw) return false;
+  if (!raw) { console.log('[session] no session in localStorage'); return false; }
   try {
     const session = JSON.parse(raw);
-    if (session.sublist !== currentSublist || session.studyMode !== currentStudyMode) return false;
-    if (!session.queue || session.index >= session.queue.length) return false;
+    const sessionSublist = Number(session.sublist);
+    const currentSub = Number(currentSublist);
+    const sessionMode = String(session.studyMode || 'all');
+    const currentMode2 = String(currentStudyMode);
+
+    console.log('[session] restore check:', {
+      sessionSublist, currentSublist: currentSub,
+      sessionMode, currentMode: currentMode2,
+      queueLen: session.queue ? session.queue.length : 0,
+      savedIndex: session.index
+    });
+
+    if (sessionSublist !== currentSub || sessionMode !== currentMode2) {
+      console.log('[session] sublist/mode mismatch, rejecting');
+      return false;
+    }
+    if (!Array.isArray(session.queue) || session.queue.length === 0) {
+      console.log('[session] invalid queue, rejecting');
+      return false;
+    }
+    if (session.index < 0 || session.index > session.queue.length) {
+      console.log('[session] index out of range, rejecting');
+      return false;
+    }
+    // If index === queue.length, the round was completed; let showFlashcard handle it
     fcQueue = session.queue;
     fcIndex = session.index;
     fcWrongWords = session.wrongWords || [];
     fcReviewRound = session.reviewRound || 0;
     fcFlipped = false;
+    console.log('[session] restored successfully, fcIndex =', fcIndex, 'queueLen =', fcQueue.length);
     return true;
-  } catch (e) { return false; }
+  } catch (e) { console.log('[session] parse error:', e); return false; }
 }
 
 function buildFcQueue() {
@@ -1282,8 +1308,11 @@ function getOverallProgress() {
 
 function initFlashcard() {
   // Try to restore saved session first
-  if (!restoreFcSession()) {
+  const restored = restoreFcSession();
+  console.log('[initFlashcard] restored =', restored, 'fcIndex =', fcIndex, 'queueLen =', fcQueue.length);
+  if (!restored) {
     buildFcQueue();
+    console.log('[initFlashcard] built new queue, queueLen =', fcQueue.length);
   }
   showFlashcard();
 }
