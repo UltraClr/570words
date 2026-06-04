@@ -916,6 +916,8 @@ let filteredWords = [];
 let fcQueue = [];
 let fcIndex = 0;
 let fcFlipped = false;
+let fcWrongWords = [];
+let fcReviewRound = 0;
 
 // Quiz state
 let qzQuestions = [];
@@ -1063,17 +1065,50 @@ function initFlashcard() {
   fcQueue = [...shuffle(reviewDue), ...shuffle(unlearned), ...shuffle(learning), ...shuffle(other)];
   fcIndex = 0;
   fcFlipped = false;
+  fcWrongWords = [];
+  fcReviewRound = 0;
   showFlashcard();
 }
 
 function showFlashcard() {
-  if (fcQueue.length === 0) {
+  if (fcIndex >= fcQueue.length) {
+    // Round complete — check if there are wrong words to review
+    const uniqueWrong = [...new Set(fcWrongWords)];
+    if (uniqueWrong.length > 0) {
+      fcReviewRound++;
+      fcQueue = shuffle(uniqueWrong);
+      fcWrongWords = [];
+      fcIndex = 0;
+      fcFlipped = false;
+
+      // Show review round indicator
+      document.getElementById('fc-counter').textContent = `🔄 错题复习 第${fcReviewRound}轮 · ${fcQueue.length} 词`;
+      document.getElementById('fc-progress').style.width = '0%';
+
+      const card = document.getElementById('flashcard');
+      card.classList.remove('flipped');
+
+      const idx = fcQueue[0];
+      const w = WORDS[idx];
+      const ex = EXTRAS[idx];
+      document.getElementById('fc-word').textContent = w.w;
+      document.getElementById('fc-sublist').textContent = `Sublist ${w.s} · 错题复习`;
+      document.getElementById('fc-def').textContent = w.d;
+      document.getElementById('fc-word-back').textContent = w.w;
+      document.getElementById('fc-coll').innerHTML = (ex ? ex.c : []).length > 0 ? `<div class="coll-label">常用搭配</div>` + (ex ? ex.c : []).map(c => typeof c === 'string' ? `<span class="coll-tag">${c}</span>` : `<span class="coll-tag">${c.en}<span class="coll-zh">${c.zh ? ' ' + c.zh : ''}</span></span>`).join('') : '';
+      return;
+    }
+
+    // All done — no wrong words
     document.getElementById('fc-word').textContent = '已完成!';
     document.getElementById('fc-def').textContent = '太棒了!';
     document.getElementById('fc-sublist').textContent = '';
     document.getElementById('fc-word-back').textContent = '';
     document.getElementById('fc-coll').innerHTML = '';
-    document.getElementById('fc-counter').textContent = '本组学习完毕';
+    const doneText = fcReviewRound > 0
+      ? `学习完毕！经过 ${fcReviewRound} 轮复习，全部掌握！`
+      : '本组学习完毕，全部正确！';
+    document.getElementById('fc-counter').textContent = doneText;
     document.getElementById('fc-progress').style.width = '100%';
     return;
   }
@@ -1081,7 +1116,9 @@ function showFlashcard() {
   const w = WORDS[idx];
   const ex = EXTRAS[idx];
   document.getElementById('fc-word').textContent = w.w;
-  document.getElementById('fc-sublist').textContent = `Sublist ${w.s}`;
+  document.getElementById('fc-sublist').textContent = fcReviewRound > 0
+    ? `Sublist ${w.s} · 错题复习第${fcReviewRound}轮`
+    : `Sublist ${w.s}`;
   document.getElementById('fc-def').textContent = w.d;
   document.getElementById('fc-word-back').textContent = w.w;
   document.getElementById('fc-coll').innerHTML = (ex ? ex.c : []).length > 0 ? `<div class="coll-label">常用搭配</div>` + (ex ? ex.c : []).map(c => typeof c === 'string' ? `<span class="coll-tag">${c}</span>` : `<span class="coll-tag">${c.en}<span class="coll-zh">${c.zh ? ' ' + c.zh : ''}</span></span>`).join('') : '';
@@ -1090,7 +1127,8 @@ function showFlashcard() {
   card.classList.remove('flipped');
   fcFlipped = false;
 
-  document.getElementById('fc-counter').textContent = `${fcIndex + 1} / ${fcQueue.length}`;
+  const prefix = fcReviewRound > 0 ? `🔄 复习 · ` : '';
+  document.getElementById('fc-counter').textContent = `${prefix}${fcIndex + 1} / ${fcQueue.length}`;
   document.getElementById('fc-progress').style.width = `${(fcIndex / fcQueue.length) * 100}%`;
 }
 
@@ -1101,14 +1139,13 @@ function flipCard() {
 }
 
 function markCard(known) {
-  if (fcQueue.length === 0) return;
+  if (fcIndex >= fcQueue.length) return;
   const idx = fcQueue[fcIndex % fcQueue.length];
   markResult(idx, known);
 
-  // If wrong, insert this word again later
+  // If wrong, track for review after this round
   if (!known) {
-    const insertAt = Math.min(fcIndex + 3 + Math.floor(Math.random() * 3), fcQueue.length);
-    fcQueue.splice(insertAt, 0, idx);
+    fcWrongWords.push(idx);
   }
 
   fcIndex++;
