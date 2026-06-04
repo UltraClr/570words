@@ -1086,6 +1086,21 @@ function getDerivativesHtml(word) {
 
 // ============ INIT ============
 function init() {
+  // Restore dropdown states from saved session
+  const raw = localStorage.getItem('awl570_fc_session');
+  if (raw) {
+    try {
+      const session = JSON.parse(raw);
+      if (session.sublist !== undefined) {
+        currentSublist = session.sublist;
+        document.getElementById('sublist-filter').value = session.sublist;
+      }
+      if (session.studyMode !== undefined) {
+        currentStudyMode = session.studyMode;
+        document.getElementById('study-mode').value = session.studyMode;
+      }
+    } catch (e) {}
+  }
   updateStats();
   switchMode('flashcard');
 }
