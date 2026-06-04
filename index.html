@@ -126,7 +126,7 @@
   /* === FLASHCARD MODE === */
   .flashcard-container {
     perspective: 1200px;
-    margin: 30px auto;
+    margin: 20px auto;
     max-width: 520px;
   }
   .flashcard {
@@ -147,8 +147,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: 32px;
     box-shadow: var(--shadow);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .flashcard-front {
     background: linear-gradient(145deg, #ffffff, #f1f5f9);
@@ -548,8 +550,25 @@
     .nav { padding: 12px 16px; top: 80px; }
     .controls { padding: 12px 16px; }
     .main { padding: 0 16px 40px; }
-    .flashcard-front .word { font-size: 28px; }
-    .flashcard-back .definition { font-size: 24px; }
+    .flashcard-container { margin: 12px auto; }
+    .flashcard { min-height: 260px; max-height: 70vh; }
+    .flashcard-face { padding: 20px 16px; }
+    .flashcard-front .word { font-size: 26px; gap: 6px; }
+    .flashcard-front .phonetic { font-size: 14px; margin-top: 4px; }
+    .flashcard-front .sublist-tag { margin-top: 10px; font-size: 11px; padding: 3px 10px; }
+    .flashcard-front .hint { margin-top: 14px; font-size: 12px; }
+    .flashcard-back .definition { font-size: 22px; }
+    .flashcard-back .word-small { font-size: 14px; margin-top: 10px; }
+    .collocations { margin-top: 14px; padding-top: 12px; gap: 6px; }
+    .collocations .coll-tag { padding: 4px 10px; font-size: 12px; }
+    .collocations .coll-zh { font-size: 11px; }
+    .derivatives { margin-top: 8px; padding-top: 8px; gap: 5px; }
+    .derivatives .deriv-tag { padding: 3px 8px; font-size: 12px; }
+    .derivatives .deriv-pos { font-size: 9px; }
+    .derivatives .deriv-zh { font-size: 10px; }
+    .pos-tag { font-size: 11px; padding: 1px 8px; }
+    .flashcard-actions { gap: 10px; }
+    .flashcard-actions button { padding: 10px 20px; font-size: 13px; }
     .spell-input { width: 200px; }
   }
 
