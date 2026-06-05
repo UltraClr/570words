@@ -629,6 +629,129 @@
     background: var(--danger);
     color: white;
   }
+  .sync-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sync-btn:hover {
+    background: var(--primary);
+    color: white;
+  }
+  .sync-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .sync-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .sync-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .sync-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .sync-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-light);
+    padding: 0 4px;
+  }
+  .sync-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sync-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-light);
+  }
+  .sync-tab.active {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+  .sync-hint {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 0 0 12px;
+  }
+  .sync-code {
+    width: 100%;
+    height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 12px;
+    font-family: 'SF Mono', monospace;
+    resize: none;
+    box-sizing: border-box;
+    background: #f8fafc;
+  }
+  .sync-code:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .sync-action-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--primary);
+    color: white;
+    transition: all 0.2s;
+  }
+  .sync-action-btn:hover {
+    opacity: 0.9;
+  }
+  .sync-action-btn.import {
+    background: var(--success);
+  }
+  .sync-tip {
+    display: block;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--success);
+    min-height: 20px;
+  }
 
   /* Review badge */
   .review-badge {
@@ -912,6 +1035,7 @@
     <option value="review">待复习</option>
     <option value="mastered">已掌握</option>
   </select>
+  <button class="sync-btn" onclick="openSyncModal()">同步进度</button>
   <button class="reset-btn" onclick="resetProgress()">重置进度</button>
 </div>
 
@@ -2090,8 +2214,142 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ============ SYNC CODE ============
+function exportProgress() {
+  const keys = Object.keys(progress);
+  if (keys.length === 0) return '';
+  const HOURS = 3600000;
+  const parts = [];
+  for (const k of keys) {
+    const p = progress[k];
+    const hours = p.nextReview ? Math.round(p.nextReview / HOURS) : 0;
+    parts.push(`${k}:${p.level || 0},${hours},${p.correct || 0},${p.wrong || 0}`);
+  }
+  return btoa('1:' + parts.join(';'));
+}
+
+function importProgress(code) {
+  const raw = atob(code.trim());
+  if (!raw.startsWith('1:')) throw new Error('格式无效');
+  const data = raw.slice(2);
+  if (!data) throw new Error('同步码为空');
+  const HOURS = 3600000;
+  const newProgress = {};
+  const entries = data.split(';');
+  for (const entry of entries) {
+    const [idx, rest] = entry.split(':');
+    if (!rest) continue;
+    const [level, hours, correct, wrong] = rest.split(',').map(Number);
+    const wordIdx = parseInt(idx);
+    if (isNaN(wordIdx) || wordIdx < 0 || wordIdx >= WORDS.length) continue;
+    newProgress[wordIdx] = {
+      level: level || 0,
+      nextReview: hours ? hours * HOURS : 0,
+      correct: correct || 0,
+      wrong: wrong || 0
+    };
+  }
+  return newProgress;
+}
+
+function openSyncModal() {
+  document.getElementById('sync-overlay').classList.remove('hidden');
+  switchSyncTab('export');
+}
+
+function closeSyncModal() {
+  document.getElementById('sync-overlay').classList.add('hidden');
+  document.getElementById('copy-tip').textContent = '';
+  document.getElementById('import-tip').textContent = '';
+}
+
+function switchSyncTab(tab) {
+  const isExport = tab === 'export';
+  document.getElementById('tab-export').classList.toggle('active', isExport);
+  document.getElementById('tab-import').classList.toggle('active', !isExport);
+  document.getElementById('sync-export-panel').classList.toggle('hidden', !isExport);
+  document.getElementById('sync-import-panel').classList.toggle('hidden', isExport);
+  document.getElementById('copy-tip').textContent = '';
+  document.getElementById('import-tip').textContent = '';
+
+  if (isExport) {
+    const code = exportProgress();
+    const output = document.getElementById('sync-code-output');
+    output.value = code || '（暂无学习进度）';
+  } else {
+    document.getElementById('sync-code-input').value = '';
+  }
+}
+
+function copySyncCode() {
+  const output = document.getElementById('sync-code-output');
+  if (!output.value || output.value.startsWith('（')) return;
+  navigator.clipboard.writeText(output.value).then(() => {
+    document.getElementById('copy-tip').textContent = '已复制到剪贴板';
+    setTimeout(() => { document.getElementById('copy-tip').textContent = ''; }, 2000);
+  }).catch(() => {
+    output.select();
+    document.execCommand('copy');
+    document.getElementById('copy-tip').textContent = '已复制';
+    setTimeout(() => { document.getElementById('copy-tip').textContent = ''; }, 2000);
+  });
+}
+
+function importSyncCode() {
+  const input = document.getElementById('sync-code-input').value.trim();
+  if (!input) {
+    document.getElementById('import-tip').textContent = '请先粘贴同步码';
+    document.getElementById('import-tip').style.color = 'var(--danger)';
+    return;
+  }
+  try {
+    const newProgress = importProgress(input);
+    const count = Object.keys(newProgress).length;
+    if (count === 0) throw new Error('未找到有效进度数据');
+    if (!confirm(`将导入 ${count} 个词的学习进度，当前进度会被覆盖，确认？`)) return;
+    progress = newProgress;
+    saveProgress();
+    clearAllSessions();
+    updateStats();
+    switchMode(currentMode);
+    document.getElementById('import-tip').style.color = 'var(--success)';
+    document.getElementById('import-tip').textContent = `导入成功！已恢复 ${count} 个词的进度`;
+  } catch (e) {
+    document.getElementById('import-tip').style.color = 'var(--danger)';
+    document.getElementById('import-tip').textContent = '导入失败：' + e.message;
+  }
+}
+
 // ============ START ============
 init();
 </script>
+<!-- SYNC MODAL -->
+<div class="sync-overlay hidden" id="sync-overlay" onclick="if(event.target===this)closeSyncModal()">
+  <div class="sync-modal">
+    <div class="sync-header">
+      <h3>同步学习进度</h3>
+      <button class="sync-close" onclick="closeSyncModal()">&times;</button>
+    </div>
+    <div class="sync-tabs">
+      <button class="sync-tab active" id="tab-export" onclick="switchSyncTab('export')">导出同步码</button>
+      <button class="sync-tab" id="tab-import" onclick="switchSyncTab('import')">导入同步码</button>
+    </div>
+    <div class="sync-body">
+      <div id="sync-export-panel">
+        <p class="sync-hint">复制下方同步码，在其他设备的"导入"中粘贴即可恢复进度。</p>
+        <textarea class="sync-code" id="sync-code-output" readonly onclick="this.select()"></textarea>
+        <button class="sync-action-btn" onclick="copySyncCode()">复制同步码</button>
+        <span class="sync-tip" id="copy-tip"></span>
+      </div>
+      <div id="sync-import-panel" class="hidden">
+        <p class="sync-hint">粘贴之前导出的同步码，将覆盖当前进度。</p>
+        <textarea class="sync-code" id="sync-code-input" placeholder="在此粘贴同步码..."></textarea>
+        <button class="sync-action-btn import" onclick="importSyncCode()">导入进度</button>
+        <span class="sync-tip" id="import-tip"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
