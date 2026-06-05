@@ -4599,17 +4599,30 @@ let ebSheetOpen = false;
 
 const EB_TYPE_LABELS = { vocabulary: '词汇选择', cloze: '完型填空', ordering: '排序题', reading: '阅读理解' };
 
-function saveExamSession() {
-  store.set('awl570_exam_session', JSON.stringify({
-    setIdx: ebSetIdx,
+function saveExamSession(setIdx) {
+  const idx = setIdx !== undefined ? setIdx : ebSetIdx;
+  store.set('awl570_exam_session_' + idx, JSON.stringify({
+    setIdx: idx,
     index: ebIndex,
     correct: ebCorrect,
     status: ebStatus
   }));
+  // Also remember which set was last active
+  store.set('awl570_exam_last_set', String(idx));
 }
 
-function restoreExamSession() {
-  const raw = store.get('awl570_exam_session');
+function restoreExamSession(setIdx) {
+  let raw;
+  if (setIdx !== undefined) {
+    raw = store.get('awl570_exam_session_' + setIdx);
+  } else {
+    // Restore the last active set
+    const lastSet = store.get('awl570_exam_last_set');
+    if (lastSet === null) return false;
+    const idx = parseInt(lastSet);
+    if (isNaN(idx)) return false;
+    raw = store.get('awl570_exam_session_' + idx);
+  }
   if (!raw) return false;
   try {
     const s = JSON.parse(raw);
@@ -4620,15 +4633,18 @@ function restoreExamSession() {
     ebIndex = s.index || 0;
     ebCorrect = s.correct || 0;
     ebStatus = s.status;
-    // Validate
     if (ebStatus.length !== ebQuestions.length) return false;
     if (ebIndex >= ebQuestions.length) ebIndex = 0;
     return true;
   } catch (e) { return false; }
 }
 
-function clearExamSession() {
-  store.remove('awl570_exam_session');
+function clearExamSession(setIdx) {
+  if (setIdx !== undefined) {
+    store.remove('awl570_exam_session_' + setIdx);
+  } else {
+    store.remove('awl570_exam_session_' + ebSetIdx);
+  }
 }
 
 function initExamBank() {
@@ -4663,9 +4679,25 @@ function initExamBank() {
 }
 
 function onExamSetChange() {
+  // Save current set's progress before switching
+  if (ebSetIdx >= 0 && ebStatus.length > 0) {
+    saveExamSession(ebSetIdx);
+  }
   const val = parseInt(document.getElementById('eb-set-select').value);
   if (isNaN(val) || val < 0) return;
   ebSetIdx = val;
+  // Try to restore the new set's saved session
+  if (restoreExamSession(val)) {
+    ebSheetOpen = false;
+    ebAnswered = false;
+    document.getElementById('eb-area').classList.remove('hidden');
+    document.getElementById('eb-result').classList.add('hidden');
+    document.getElementById('eb-answer-sheet').classList.add('hidden');
+    document.getElementById('eb-sheet-arrow').classList.remove('open');
+    renderAnswerSheet();
+    showExamQuestion();
+    return;
+  }
   startExamBank();
 }
 
