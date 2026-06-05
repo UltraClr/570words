@@ -483,6 +483,73 @@
     color: var(--primary);
   }
 
+  /* === EXAM BANK MODE === */
+  .eb-set-picker {
+    text-align: center;
+    padding: 20px;
+  }
+  .eb-set-picker select {
+    padding: 10px 20px;
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    font-size: 15px;
+    background: white;
+    cursor: pointer;
+    min-width: 200px;
+  }
+  .eb-type-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .eb-type-vocabulary { background: #dbeafe; color: #1e40af; }
+  .eb-type-cloze { background: #fef3c7; color: #92400e; }
+  .eb-type-ordering { background: #e0e7ff; color: #3730a3; }
+  .eb-type-reading { background: #dcfce7; color: #166534; }
+  .eb-passage {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .eb-passage .blank {
+    display: inline-block;
+    min-width: 80px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary);
+    padding: 0 4px;
+  }
+  .eb-area {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .eb-result {
+    text-align: center;
+    padding: 30px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .eb-result .score {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
   /* === SPELLING MODE === */
   .spell-area {
     max-width: 600px;
@@ -1012,6 +1079,7 @@
   <button class="nav-btn" onclick="switchMode('wordlist')">词汇总览</button>
   <button class="nav-btn" onclick="switchMode('fillblank')">例句填空</button>
   <button class="nav-btn" onclick="switchMode('original')">原始词表</button>
+  <button class="nav-btn" onclick="switchMode('exambank')">题库练习</button>
 </div>
 
 <div class="controls">
@@ -1173,7 +1241,1796 @@
     </div>
     <div id="original-list"></div>
   </div>
+
+  <!-- EXAM BANK MODE -->
+  <div id="mode-exambank" class="hidden">
+    <div class="progress-bar"><div class="progress-fill" id="eb-progress"></div></div>
+    <div class="card-counter" id="eb-counter"></div>
+    <div class="eb-set-picker">
+      <select id="eb-set-select" onchange="onExamSetChange()">
+        <option value="0">选择套题...</option>
+      </select>
+    </div>
+    <div class="eb-area hidden" id="eb-area">
+      <div class="eb-type-badge" id="eb-type"></div>
+      <div class="eb-passage hidden" id="eb-passage"></div>
+      <div class="quiz-question">
+        <div class="q-text" id="eb-question"></div>
+      </div>
+      <div class="quiz-options" id="eb-options"></div>
+      <div class="quiz-card-detail hidden" id="eb-detail">
+        <div class="quiz-card-inner">
+          <div class="definition" id="eb-detail-answer"></div>
+        </div>
+        <div style="text-align:center; margin-top:16px;">
+          <button class="btn-next" onclick="nextExamQuestion()">继续下一题 →</button>
+        </div>
+      </div>
+    </div>
+    <div class="eb-result hidden" id="eb-result">
+      <div class="score" id="eb-score">0%</div>
+      <p style="margin-top:12px;color:var(--text-light);" id="eb-result-text"></p>
+      <button class="primary-btn" style="margin-top:20px;padding:12px 28px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;background:var(--primary);color:white;" onclick="startExamBank()">再来一轮</button>
+    </div>
+  </div>
 </div>
+
+<script>
+const QUIZ_BANK = {
+  "sets": [
+    {
+      "setNum": 1,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "The committee has decided to ________ its stance on environmental policies to gain public support.",
+          "options": [
+            "alter",
+            "confirm",
+            "discard",
+            "neglect"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The new health regulation ________ citizens to wear masks in crowded areas.",
+          "options": [
+            "insists",
+            "obliges",
+            "advises",
+            "recommends"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "His explanation was so ________ that everyone immediately understood the concept.",
+          "options": [
+            "ambiguous",
+            "explicit",
+            "irrelevant",
+            "profound"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The manager’s strategy to increase sales was considered ________ by the marketing team.",
+          "options": [
+            "innovative",
+            "monotonous",
+            "outdated",
+            "expensive"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Students are encouraged to develop a ________ interest in subjects beyond their core studies.",
+          "options": [
+            "fleeting",
+            "keen",
+            "neutral",
+            "passive"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions.",
+          "options": [
+            "transformed",
+            "hindered",
+            "emphasized",
+            "initiated"
+          ],
+          "answer": 0,
+          "passage": "Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions.",
+          "options": [
+            "transformed",
+            "hindered",
+            "emphasized",
+            "initiated"
+          ],
+          "answer": 1,
+          "passage": "Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions.",
+          "options": [
+            "transformed",
+            "hindered",
+            "emphasized",
+            "initiated"
+          ],
+          "answer": 2,
+          "passage": "Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 9 in the passage: Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions.",
+          "options": [
+            "transformed",
+            "hindered",
+            "emphasized",
+            "initiated"
+          ],
+          "answer": 3,
+          "passage": "Recent technological advancements have ________ the way people interact with one another. While traditional communication was ________ by physical proximity, modern tools have made remote interaction ________ and even preferable in some cases. However, this shift has also ________ concerns about the loss of personal touch in relationships. Experts ________ the need for a balance between online and offline interactions."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Social media platforms have revolutionized how we share information.\nB) At the same time, they have been criticized for spreading misinformation.\nC) Understanding their impact requires evaluating both their positive and negative aspects.\nD) As a result, debates about regulation and free speech are increasingly common.\nE) The balance between freedom of expression and accountability remains a complex issue.",
+          "options": [
+            "E -> B -> D -> C -> A",
+            "E -> D -> A -> C -> B",
+            "E -> B -> D -> A -> C",
+            "A -> B -> D -> E -> C"
+          ],
+          "answer": 3
+        },
+        {
+          "type": "reading",
+          "question": "What is the primary advantage of online education?",
+          "options": [
+            "More affordable fees",
+            "Greater accessibility",
+            "Enhanced interaction",
+            "More structured schedules"
+          ],
+          "answer": 1,
+          "passage": "Online education has seen a significant rise in popularity over the past decade. It offers flexibility and accessibility to students who might not otherwise have access to higher education. However, it also presents challenges such as lack of direct interaction and potential distractions. Studies show that while some students excel in virtual classrooms, others struggle without the structure of traditional settings. This has led to debates on the effectiveness of online learning compared to face-to-face instruction."
+        },
+        {
+          "type": "reading",
+          "question": "According to the passage, what is a challenge of online education?",
+          "options": [
+            "Poor internet connectivity",
+            "Distractions during learning",
+            "Lack of qualified teachers",
+            "High costs"
+          ],
+          "answer": 1,
+          "passage": "Online education has seen a significant rise in popularity over the past decade. It offers flexibility and accessibility to students who might not otherwise have access to higher education. However, it also presents challenges such as lack of direct interaction and potential distractions. Studies show that while some students excel in virtual classrooms, others struggle without the structure of traditional settings. This has led to debates on the effectiveness of online learning compared to face-to-face instruction."
+        },
+        {
+          "type": "reading",
+          "question": "What do studies suggest about online education?",
+          "options": [
+            "It is universally effective.",
+            "It is only suitable for certain learners.",
+            "It is better than face-to-face learning.",
+            "It has no challenges."
+          ],
+          "answer": 1,
+          "passage": "Online education has seen a significant rise in popularity over the past decade. It offers flexibility and accessibility to students who might not otherwise have access to higher education. However, it also presents challenges such as lack of direct interaction and potential distractions. Studies show that while some students excel in virtual classrooms, others struggle without the structure of traditional settings. This has led to debates on the effectiveness of online learning compared to face-to-face instruction."
+        },
+        {
+          "type": "reading",
+          "question": "What does the passage imply about traditional education?",
+          "options": [
+            "It is becoming obsolete.",
+            "It provides necessary structure for some learners.",
+            "It is less effective than online learning.",
+            "It is more flexible."
+          ],
+          "answer": 1,
+          "passage": "Online education has seen a significant rise in popularity over the past decade. It offers flexibility and accessibility to students who might not otherwise have access to higher education. However, it also presents challenges such as lack of direct interaction and potential distractions. Studies show that while some students excel in virtual classrooms, others struggle without the structure of traditional settings. This has led to debates on the effectiveness of online learning compared to face-to-face instruction."
+        },
+        {
+          "type": "reading",
+          "question": "What is the author’s perspective on online education?",
+          "options": [
+            "Fully supportive",
+            "Neutral with balanced views",
+            "Critical of its shortcomings",
+            "Opposed to its adoption"
+          ],
+          "answer": 1,
+          "passage": "Online education has seen a significant rise in popularity over the past decade. It offers flexibility and accessibility to students who might not otherwise have access to higher education. However, it also presents challenges such as lack of direct interaction and potential distractions. Studies show that while some students excel in virtual classrooms, others struggle without the structure of traditional settings. This has led to debates on the effectiveness of online learning compared to face-to-face instruction."
+        },
+        {
+          "type": "vocabulary",
+          "question": "Many countries are working to ________ their dependence on fossil fuels by adopting renewable energy sources.",
+          "options": [
+            "abandon",
+            "reduce",
+            "exploit",
+            "prolong"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The rapid melting of glaciers is often ________ to global warming.",
+          "options": [
+            "attributed",
+            "subjected",
+            "connected",
+            "concluded"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Solar panels are seen as an ________ solution to reducing carbon emissions.",
+          "options": [
+            "innovative",
+            "impractical",
+            "unreliable",
+            "irrelevant"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The ________ rise in sea levels poses a significant threat to coastal cities.",
+          "options": [
+            "temporary",
+            "gradual",
+            "stagnant",
+            "reversed"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Governments are investing in technologies that can ________ carbon dioxide from the atmosphere.",
+          "options": [
+            "capture",
+            "dissolve",
+            "evaporate",
+            "extract"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Artificial intelligence has the potential to ________ the way industries operate.",
+          "options": [
+            "transform",
+            "maintain",
+            "simplify",
+            "ignore"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The software was designed to ________ complex data analysis processes.",
+          "options": [
+            "automate",
+            "complicate",
+            "exaggerate",
+            "inhibit"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Many tech startups face challenges in ________ sufficient funding for their projects.",
+          "options": [
+            "acquiring",
+            "dismissing",
+            "neglecting",
+            "exhausting"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Cybersecurity measures are crucial to ________ sensitive information from hackers.",
+          "options": [
+            "expose",
+            "protect",
+            "eliminate",
+            "compromise"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The ________ of 5G networks will significantly improve communication speed and efficiency.",
+          "options": [
+            "adoption",
+            "rejection",
+            "destruction",
+            "expiration"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Traditional festivals often ________ the values and beliefs of a community.",
+          "options": [
+            "preserve",
+            "ignore",
+            "obscure",
+            "suppress"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The museum’s new exhibition ________ the influence of ancient civilizations on modern culture.",
+          "options": [
+            "highlights",
+            "diminishes",
+            "excludes",
+            "confuses"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Cultural ________ occurs when different traditions blend to form something new.",
+          "options": [
+            "assimilation",
+            "exclusion",
+            "isolation",
+            "fragmentation"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The diversity of languages spoken in the region is a testament to its rich cultural ________.",
+          "options": [
+            "heritage",
+            "poverty",
+            "simplicity",
+            "decline"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The festival was organized to ________ cultural understanding among different ethnic groups.",
+          "options": [
+            "promote",
+            "hinder",
+            "challenge",
+            "dismiss"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles.",
+          "options": [
+            "overstated",
+            "attributed",
+            "educate",
+            "underestimated"
+          ],
+          "answer": 0,
+          "passage": "The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles.",
+          "options": [
+            "overstated",
+            "attributed",
+            "educate",
+            "underestimated"
+          ],
+          "answer": 1,
+          "passage": "The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles.",
+          "options": [
+            "overstated",
+            "attributed",
+            "educate",
+            "underestimated"
+          ],
+          "answer": 2,
+          "passage": "The importance of a balanced diet cannot be ________. Consuming a variety of nutrient-rich foods ensures that the body receives essential vitamins and minerals. However, unhealthy eating habits, such as excessive consumption of processed foods, have ________ to rising obesity rates worldwide. Public health campaigns now aim to ________ people about the risks of poor dietary choices and encourage healthier lifestyles."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience.",
+          "options": [
+            "attribute",
+            "adapt",
+            "reflect",
+            "avoid"
+          ],
+          "answer": 0,
+          "passage": "Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience.",
+          "options": [
+            "attribute",
+            "adapt",
+            "reflect",
+            "avoid"
+          ],
+          "answer": 1,
+          "passage": "Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience.",
+          "options": [
+            "attribute",
+            "adapt",
+            "reflect",
+            "avoid"
+          ],
+          "answer": 2,
+          "passage": "Successful businesses often ________ their achievements to effective leadership and teamwork. In a competitive market, companies need to ________ to changing customer demands and adopt innovative strategies to stay ahead. Marketing campaigns must also ________ the values of the brand while appealing to their target audience."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Technology has become an integral part of education in recent years.\nB) The use of online platforms has enabled students to access learning materials anytime.\nC) However, it also raises concerns about equity for students without internet access.\nD) Teachers are now adopting digital tools to create interactive lessons.\nE) Balancing technology with traditional methods remains a challenge.",
+          "options": [
+            "A -> C -> B -> D -> E",
+            "C -> A -> B -> E -> D",
+            "A -> E -> B -> C -> D",
+            "A -> D -> B -> C -> E"
+          ],
+          "answer": 3
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Reducing plastic use is a priority for many governments worldwide.\nB) Policies banning single-use plastics have been introduced in various countries.\nC) Public awareness campaigns aim to educate people about the benefits of these policies.\nD) Businesses are encouraged to develop eco-friendly packaging alternatives.\nE) The goal is to minimize pollution and protect marine life.",
+          "options": [
+            "E -> C -> B -> D -> A",
+            "B -> C -> A -> E -> D",
+            "E -> B -> C -> A -> D",
+            "A -> B -> D -> C -> E"
+          ],
+          "answer": 3
+        },
+        {
+          "type": "reading",
+          "question": "What is a benefit of globalization mentioned in the passage?",
+          "options": [
+            "Reduction of inequality",
+            "Cultural exchange",
+            "Preservation of local industries",
+            "Environmental protection"
+          ],
+          "answer": 1,
+          "passage": "Globalization has significantly altered economic, cultural, and political dynamics worldwide. While it has created opportunities for trade and innovation, it has also widened economic inequalities in some regions. Advocates argue that globalization promotes cultural exchange and economic growth. Critics, however, highlight its impact on local industries and the environment. Balancing the benefits and drawbacks of globalization remains a key challenge for policymakers."
+        },
+        {
+          "type": "reading",
+          "question": "What is a criticism of globalization?",
+          "options": [
+            "Lack of innovation",
+            "Increased trade",
+            "Environmental harm",
+            "Economic growth"
+          ],
+          "answer": 2,
+          "passage": "Globalization has significantly altered economic, cultural, and political dynamics worldwide. While it has created opportunities for trade and innovation, it has also widened economic inequalities in some regions. Advocates argue that globalization promotes cultural exchange and economic growth. Critics, however, highlight its impact on local industries and the environment. Balancing the benefits and drawbacks of globalization remains a key challenge for policymakers."
+        },
+        {
+          "type": "reading",
+          "question": "What does the passage suggest about globalization?",
+          "options": [
+            "It is entirely beneficial.",
+            "It has both positive and negative impacts.",
+            "It is no longer relevant.",
+            "It primarily benefits developed countries."
+          ],
+          "answer": 1,
+          "passage": "Globalization has significantly altered economic, cultural, and political dynamics worldwide. While it has created opportunities for trade and innovation, it has also widened economic inequalities in some regions. Advocates argue that globalization promotes cultural exchange and economic growth. Critics, however, highlight its impact on local industries and the environment. Balancing the benefits and drawbacks of globalization remains a key challenge for policymakers."
+        }
+      ]
+    },
+    {
+      "setNum": 2,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "The scientist’s theory was ________ after years of rigorous experimentation.",
+          "options": [
+            "debunked",
+            "validated",
+            "rejected",
+            "ignored"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "New technologies are often ________ by society before their full potential is realized.",
+          "options": [
+            "resisted",
+            "embraced",
+            "criticized",
+            "ignored"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The ________ of the natural disaster led to international relief efforts.",
+          "options": [
+            "consequences",
+            "benefits",
+            "resolutions",
+            "origins"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The politician was known for his ________ speeches that inspired many.",
+          "options": [
+            "lengthy",
+            "mundane",
+            "eloquent",
+            "disorganized"
+          ],
+          "answer": 2
+        },
+        {
+          "type": "vocabulary",
+          "question": "The company’s new policy aimed to ________ employee productivity.",
+          "options": [
+            "hinder",
+            "promote",
+            "limit",
+            "assess"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve.",
+          "options": [
+            "facilitated",
+            "addressed",
+            "adopted",
+            "created"
+          ],
+          "answer": 0,
+          "passage": "The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve.",
+          "options": [
+            "facilitated",
+            "addressed",
+            "adopted",
+            "created"
+          ],
+          "answer": 2,
+          "passage": "The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve.",
+          "options": [
+            "facilitated",
+            "addressed",
+            "adopted",
+            "created"
+          ],
+          "answer": 1,
+          "passage": "The rapid development of artificial intelligence (AI) has ________ significant advancements in various industries. From healthcare to finance, AI tools are being ________ to improve efficiency and accuracy. However, concerns about data privacy and ethical usage must be ________ as these technologies continue to evolve."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Advances in AI are being used to improve healthcare diagnostics.\nB) However, these technologies also raise concerns about data security.\nC) AI’s potential to revolutionize industries is undeniable.\nD) Striking a balance between innovation and privacy remains essential.\nE) Many experts believe that ethical guidelines are necessary.",
+          "options": [
+            "B -> E -> A -> C -> D",
+            "E -> C -> B -> A -> D",
+            "C -> A -> E -> B -> D",
+            "C -> A -> B -> E -> D"
+          ],
+          "answer": 3
+        },
+        {
+          "type": "reading",
+          "question": "What is one benefit of urbanization mentioned in the passage?",
+          "options": [
+            "Reduced pollution",
+            "Economic opportunities",
+            "Decreased housing demand",
+            "Increased rural populations"
+          ],
+          "answer": 1,
+          "passage": "Urbanization has reshaped how people live and interact. While cities provide economic opportunities and cultural hubs, they also present challenges such as overcrowding, pollution, and housing shortages. Urban planners are exploring solutions like green architecture and public transportation systems to address these issues. Collaboration between governments, private sectors, and local communities is crucial to building sustainable urban environments."
+        },
+        {
+          "type": "reading",
+          "question": "What is a challenge of urbanization?",
+          "options": [
+            "Lack of cultural activities",
+            "Overcrowding",
+            "High agricultural output",
+            "Economic stagnation"
+          ],
+          "answer": 1,
+          "passage": "Urbanization has reshaped how people live and interact. While cities provide economic opportunities and cultural hubs, they also present challenges such as overcrowding, pollution, and housing shortages. Urban planners are exploring solutions like green architecture and public transportation systems to address these issues. Collaboration between governments, private sectors, and local communities is crucial to building sustainable urban environments."
+        },
+        {
+          "type": "reading",
+          "question": "What is a proposed solution to urban challenges?",
+          "options": [
+            "Building more highways",
+            "Encouraging urban sprawl",
+            "Developing green architecture",
+            "Limiting government involvement"
+          ],
+          "answer": 2,
+          "passage": "Urbanization has reshaped how people live and interact. While cities provide economic opportunities and cultural hubs, they also present challenges such as overcrowding, pollution, and housing shortages. Urban planners are exploring solutions like green architecture and public transportation systems to address these issues. Collaboration between governments, private sectors, and local communities is crucial to building sustainable urban environments."
+        }
+      ]
+    },
+    {
+      "setNum": 3,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "The government launched a campaign to ________ public awareness about recycling.",
+          "options": [
+            "reduce",
+            "raise",
+            "overlook",
+            "assess"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The scientist conducted an experiment to ________ her hypothesis.",
+          "options": [
+            "confirm",
+            "distort",
+            "ignore",
+            "challenge"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "This ancient structure is a ________ of the civilization’s architectural ingenuity.",
+          "options": [
+            "critique",
+            "monument",
+            "flaw",
+            "artifact"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The board’s decision was ________ by a unanimous vote.",
+          "options": [
+            "revoked",
+            "finalized",
+            "opposed",
+            "delayed"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The athlete was praised for her ________ performance during the competition.",
+          "options": [
+            "remarkable",
+            "mediocre",
+            "negligible",
+            "flawed"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills.",
+          "options": [
+            "experienced",
+            "hinder",
+            "enhance",
+            "improve"
+          ],
+          "answer": 0,
+          "passage": "Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills.",
+          "options": [
+            "experienced",
+            "hinder",
+            "enhance",
+            "improve"
+          ],
+          "answer": 2,
+          "passage": "Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills.",
+          "options": [
+            "experienced",
+            "hinder",
+            "enhance",
+            "improve"
+          ],
+          "answer": 1,
+          "passage": "Education systems worldwide have ________ significant changes in recent years. Many schools are incorporating technology into classrooms to ________ learning. However, critics argue that excessive screen time may ________ students’ health and social skills."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Virtual learning platforms have become increasingly popular.\nB) This shift is largely due to the pandemic’s impact on education.\nC) These platforms provide flexibility but also present challenges.\nD) Many educators are reevaluating traditional teaching methods.\nE) The future of education may involve a blend of online and offline learning.",
+          "options": [
+            "B -> E -> C -> A -> D",
+            "A -> B -> D -> C -> E",
+            "C -> A -> E -> D -> B",
+            "A -> E -> B -> D -> C"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "reading",
+          "question": "What is a benefit of renewable energy?",
+          "options": [
+            "Lower initial investment",
+            "Reduced greenhouse gas emissions",
+            "Weather independence",
+            "Limited availability"
+          ],
+          "answer": 1,
+          "passage": "Renewable energy sources, such as solar and wind power, are gaining traction worldwide. They offer a cleaner alternative to fossil fuels, reducing greenhouse gas emissions. However, renewable energy infrastructure requires significant investment and can be influenced by weather conditions. Governments and private investors are working together to expand renewable energy projects and make them more reliable."
+        },
+        {
+          "type": "reading",
+          "question": "What is a challenge of renewable energy?",
+          "options": [
+            "High pollution levels",
+            "Dependence on fossil fuels",
+            "Weather conditions",
+            "Minimal investment"
+          ],
+          "answer": 2,
+          "passage": "Renewable energy sources, such as solar and wind power, are gaining traction worldwide. They offer a cleaner alternative to fossil fuels, reducing greenhouse gas emissions. However, renewable energy infrastructure requires significant investment and can be influenced by weather conditions. Governments and private investors are working together to expand renewable energy projects and make them more reliable."
+        },
+        {
+          "type": "reading",
+          "question": "What are governments doing to promote renewable energy?",
+          "options": [
+            "Ignoring private investors",
+            "Expanding projects",
+            "Encouraging fossil fuel use",
+            "Limiting solar panel installation"
+          ],
+          "answer": 1,
+          "passage": "Renewable energy sources, such as solar and wind power, are gaining traction worldwide. They offer a cleaner alternative to fossil fuels, reducing greenhouse gas emissions. However, renewable energy infrastructure requires significant investment and can be influenced by weather conditions. Governments and private investors are working together to expand renewable energy projects and make them more reliable."
+        }
+      ]
+    },
+    {
+      "setNum": 4,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "Regular exercise is ________ to maintaining a healthy cardiovascular system.",
+          "options": [
+            "detrimental",
+            "essential",
+            "irrelevant",
+            "complicated"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The hospital implemented new measures to ________ the spread of infections.",
+          "options": [
+            "encourage",
+            "prevent",
+            "delay",
+            "ignore"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Many people lack ________ knowledge about proper nutrition.",
+          "options": [
+            "comprehensive",
+            "superficial",
+            "irrelevant",
+            "negligible"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The vaccine’s effectiveness has been ________ in several clinical trials.",
+          "options": [
+            "proven",
+            "questioned",
+            "exaggerated",
+            "delayed"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Chronic diseases often require ________ medical management and lifestyle adjustments.",
+          "options": [
+            "temporary",
+            "continuous",
+            "inconsistent",
+            "minimal"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively.",
+          "options": [
+            "robust",
+            "address",
+            "prepare",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively.",
+          "options": [
+            "robust",
+            "address",
+            "prepare",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively.",
+          "options": [
+            "robust",
+            "address",
+            "prepare",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "The global pandemic has highlighted the importance of ________ healthcare systems. Many countries have struggled to ________ the rising demand for medical services. Governments are now investing in public health infrastructure to ________ future crises more effectively."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Vaccination campaigns have proven effective in reducing disease outbreaks.\nB) Public health initiatives play a critical role in disease prevention.\nC) However, misinformation can undermine these efforts.\nD) Governments and healthcare organizations must combat misinformation.\nE) Educating the public is essential to maintaining trust in healthcare systems.",
+          "options": [
+            "D -> B -> C -> A -> E",
+            "B -> C -> E -> D -> A",
+            "B -> D -> C -> A -> E",
+            "B -> A -> C -> D -> E"
+          ],
+          "answer": 3
+        },
+        {
+          "type": "reading",
+          "question": "What is a challenge mentioned regarding mental health?",
+          "options": [
+            "Overinvestment in resources",
+            "Limited access to services",
+            "Excessive public awareness",
+            "Lack of physical health connections"
+          ],
+          "answer": 1,
+          "passage": "Mental health is an often-overlooked aspect of healthcare. Stress, anxiety, and depression can significantly impact physical health and productivity. Access to mental health services remains a challenge in many areas, particularly in underserved communities. Policymakers are advocating for greater investment in mental health resources and awareness campaigns to reduce stigma."
+        },
+        {
+          "type": "reading",
+          "question": "What do policymakers advocate for?",
+          "options": [
+            "Cutting mental health budgets",
+            "Increasing awareness and resources",
+            "Prioritizing physical health over mental health",
+            "Promoting stigma around mental health"
+          ],
+          "answer": 1,
+          "passage": "Mental health is an often-overlooked aspect of healthcare. Stress, anxiety, and depression can significantly impact physical health and productivity. Access to mental health services remains a challenge in many areas, particularly in underserved communities. Policymakers are advocating for greater investment in mental health resources and awareness campaigns to reduce stigma."
+        }
+      ]
+    },
+    {
+      "setNum": 5,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "Deforestation has significantly ________ biodiversity in many regions.",
+          "options": [
+            "preserved",
+            "harmed",
+            "enhanced",
+            "ignored"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Governments are introducing policies to ________ the use of single-use plastics.",
+          "options": [
+            "eliminate",
+            "encourage",
+            "delay",
+            "sustain"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Renewable energy sources are considered ________ alternatives to fossil fuels.",
+          "options": [
+            "finite",
+            "viable",
+            "impractical",
+            "irrelevant"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Recycling programs have been launched to ________ waste and conserve resources.",
+          "options": [
+            "increase",
+            "reduce",
+            "generate",
+            "dispose"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Climate change poses a ________ threat to global ecosystems.",
+          "options": [
+            "negligible",
+            "critical",
+            "temporary",
+            "occasional"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges.",
+          "options": [
+            "promote",
+            "raise",
+            "address",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges.",
+          "options": [
+            "promote",
+            "raise",
+            "address",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges.",
+          "options": [
+            "promote",
+            "raise",
+            "address",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "Reducing carbon emissions is a global priority to combat climate change. One effective strategy is to ________ renewable energy technologies. Additionally, governments need to ________ public awareness about sustainable living practices. Collaboration between nations is essential to ________ environmental challenges."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Public awareness campaigns can encourage sustainable practices.\nB) Renewable energy sources are key to reducing carbon emissions.\nC) Environmental policies should focus on protecting ecosystems.\nD) Addressing climate change requires international cooperation.\nE) Governments must enforce regulations to minimize pollution.",
+          "options": [
+            "C -> A -> D -> E -> B",
+            "E -> B -> D -> A -> C",
+            "D -> B -> E -> C -> A",
+            "A -> D -> B -> C -> E"
+          ],
+          "answer": 2
+        },
+        {
+          "type": "reading",
+          "question": "What is a major environmental concern discussed?",
+          "options": [
+            "Deforestation",
+            "Plastic pollution",
+            "Air pollution",
+            "Overfishing"
+          ],
+          "answer": 1,
+          "passage": "Plastic pollution has become a major environmental concern, especially in oceans. Microplastics are now found in marine life and even in the food we eat. Reducing plastic waste requires coordinated efforts, including bans on single-use plastics and investment in biodegradable alternatives. Scientists are also researching ways to clean up existing plastic waste in the environment."
+        },
+        {
+          "type": "reading",
+          "question": "What is one proposed solution to plastic pollution?",
+          "options": [
+            "Encouraging single-use plastics",
+            "Developing biodegradable alternatives",
+            "Increasing microplastic production",
+            "Ignoring the issue"
+          ],
+          "answer": 1,
+          "passage": "Plastic pollution has become a major environmental concern, especially in oceans. Microplastics are now found in marine life and even in the food we eat. Reducing plastic waste requires coordinated efforts, including bans on single-use plastics and investment in biodegradable alternatives. Scientists are also researching ways to clean up existing plastic waste in the environment."
+        },
+        {
+          "type": "reading",
+          "question": "What is a challenge with cleaning up plastic waste?",
+          "options": [
+            "Lack of public interest",
+            "Insufficient scientific research",
+            "High costs and complexity",
+            "Unavailability of plastic waste"
+          ],
+          "answer": 2,
+          "passage": "Plastic pollution has become a major environmental concern, especially in oceans. Microplastics are now found in marine life and even in the food we eat. Reducing plastic waste requires coordinated efforts, including bans on single-use plastics and investment in biodegradable alternatives. Scientists are also researching ways to clean up existing plastic waste in the environment."
+        }
+      ]
+    },
+    {
+      "setNum": 6,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "International trade agreements aim to ________ barriers between countries.",
+          "options": [
+            "maintain",
+            "reduce",
+            "establish",
+            "complicate"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The company expanded its operations to ________ overseas markets.",
+          "options": [
+            "target",
+            "avoid",
+            "neglect",
+            "minimize"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Economic sanctions can ________ trade relations between countries.",
+          "options": [
+            "strengthen",
+            "undermine",
+            "enhance",
+            "stabilize"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The government implemented tariffs to ________ domestic industries.",
+          "options": [
+            "protect",
+            "exploit",
+            "ignore",
+            "challenge"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Global supply chains are often ________ by political and economic instability.",
+          "options": [
+            "supported",
+            "disrupted",
+            "improved",
+            "ignored"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth.",
+          "options": [
+            "expanded",
+            "hindered",
+            "ensure",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth.",
+          "options": [
+            "expanded",
+            "hindered",
+            "ensure",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth.",
+          "options": [
+            "expanded",
+            "hindered",
+            "ensure",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "Global trade has ________ significantly in recent decades, driven by advancements in technology and transportation. However, protectionist policies and trade wars have ________ global economic cooperation. Experts suggest that fostering free trade agreements is essential to ________ sustainable growth."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Trade agreements play a key role in reducing tariffs and fostering collaboration.\nB) However, critics argue that globalization can widen economic inequality.\nC) International trade has been a driving force behind economic growth.\nD) Policymakers must balance the benefits of trade with potential drawbacks.\nE) The future of trade depends on maintaining fair and inclusive practices.",
+          "options": [
+            "C -> A -> B -> D -> E",
+            "A -> B -> D -> E -> C",
+            "E -> D -> C -> A -> B",
+            "E -> C -> B -> D -> A"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "reading",
+          "question": "What is one benefit of globalization mentioned?",
+          "options": [
+            "Increased production costs",
+            "Specialization and efficiency",
+            "Reduced environmental concerns",
+            "Limited trade opportunities"
+          ],
+          "answer": 1,
+          "passage": "Globalization has reshaped trade by integrating economies across the world. It allows countries to specialize in producing goods where they have a comparative advantage, leading to efficiency and lower costs. However, it also creates challenges such as job displacement in certain sectors and environmental concerns. Policymakers are exploring ways to make globalization more inclusive and environmentally sustainable."
+        },
+        {
+          "type": "reading",
+          "question": "What is a challenge associated with globalization?",
+          "options": [
+            "Job displacement",
+            "Decreased production efficiency",
+            "Lack of trade agreements",
+            "Overabundance of resources"
+          ],
+          "answer": 0,
+          "passage": "Globalization has reshaped trade by integrating economies across the world. It allows countries to specialize in producing goods where they have a comparative advantage, leading to efficiency and lower costs. However, it also creates challenges such as job displacement in certain sectors and environmental concerns. Policymakers are exploring ways to make globalization more inclusive and environmentally sustainable."
+        },
+        {
+          "type": "reading",
+          "question": "What are policymakers focusing on?",
+          "options": [
+            "Reducing global trade entirely",
+            "Making globalization more sustainable",
+            "Increasing job displacement",
+            "Encouraging environmental degradation"
+          ],
+          "answer": 1,
+          "passage": "Globalization has reshaped trade by integrating economies across the world. It allows countries to specialize in producing goods where they have a comparative advantage, leading to efficiency and lower costs. However, it also creates challenges such as job displacement in certain sectors and environmental concerns. Policymakers are exploring ways to make globalization more inclusive and environmentally sustainable."
+        }
+      ]
+    },
+    {
+      "setNum": 7,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "Positive reinforcement is often used to ________ desired behaviors in children.",
+          "options": [
+            "discourage",
+            "reinforce",
+            "ignore",
+            "punish"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The psychologist conducted a study to ________ the impact of stress on decision-making.",
+          "options": [
+            "examine",
+            "hinder",
+            "avoid",
+            "dismiss"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Emotional intelligence is considered a key ________ of effective leadership.",
+          "options": [
+            "indicator",
+            "obstacle",
+            "challenge",
+            "flaw"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The therapy session aimed to help the patient ________ negative thought patterns.",
+          "options": [
+            "reinforce",
+            "challenge",
+            "maintain",
+            "ignore"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Studies have shown that regular meditation can ________ mental clarity and focus.",
+          "options": [
+            "hinder",
+            "enhance",
+            "diminish",
+            "suppress"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits.",
+          "options": [
+            "reduce",
+            "improve",
+            "maximize",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits.",
+          "options": [
+            "reduce",
+            "improve",
+            "maximize",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits.",
+          "options": [
+            "reduce",
+            "improve",
+            "maximize",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "Mindfulness practices have gained popularity as an effective way to ________ stress. These techniques encourage individuals to focus on the present moment, which can ________ mental health and overall well-being. Many researchers emphasize the importance of integrating mindfulness into daily routines to ________ its benefits."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Many workplaces are now promoting mental health awareness.\nB) Stress management strategies can improve employee productivity.\nC) Practices such as mindfulness and meditation are widely recommended.\nD) Ignoring mental health issues can lead to burnout and low morale.\nE) Employers are recognizing the value of supporting mental health initiatives.",
+          "options": [
+            "C -> A -> B -> D -> E",
+            "A -> E -> B -> D -> C",
+            "E -> A -> D -> B -> C",
+            "B -> C -> A -> D -> E"
+          ],
+          "answer": 2
+        },
+        {
+          "type": "reading",
+          "question": "How do emotions influence decision-making?",
+          "options": [
+            "They always lead to irrational choices.",
+            "They can both hinder and enhance decisions.",
+            "They eliminate impulsive behavior.",
+            "They have no impact on choices."
+          ],
+          "answer": 1,
+          "passage": "Psychologists have long studied the link between emotions and decision-making. Emotions can influence both rational and impulsive choices. For instance, fear may lead to risk aversion, while excitement can encourage bold decisions. Understanding these dynamics can help individuals make better choices, particularly in high-pressure situations."
+        },
+        {
+          "type": "reading",
+          "question": "What is an example of an emotion affecting decisions?",
+          "options": [
+            "Fear leading to risk aversion",
+            "Excitement reducing boldness",
+            "Boredom enhancing focus",
+            "Anger promoting patience"
+          ],
+          "answer": 0,
+          "passage": "Psychologists have long studied the link between emotions and decision-making. Emotions can influence both rational and impulsive choices. For instance, fear may lead to risk aversion, while excitement can encourage bold decisions. Understanding these dynamics can help individuals make better choices, particularly in high-pressure situations."
+        },
+        {
+          "type": "reading",
+          "question": "How can understanding emotions help individuals?",
+          "options": [
+            "By eliminating pressure",
+            "By improving decision-making",
+            "By avoiding high-pressure situations",
+            "By suppressing emotional responses"
+          ],
+          "answer": 1,
+          "passage": "Psychologists have long studied the link between emotions and decision-making. Emotions can influence both rational and impulsive choices. For instance, fear may lead to risk aversion, while excitement can encourage bold decisions. Understanding these dynamics can help individuals make better choices, particularly in high-pressure situations."
+        }
+      ]
+    },
+    {
+      "setNum": 8,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "The development of artificial intelligence has raised ________ about privacy and ethics.",
+          "options": [
+            "suspicions",
+            "questions",
+            "solutions",
+            "clarifications"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Researchers are exploring ways to ________ the ethical implications of emerging technologies.",
+          "options": [
+            "mitigate",
+            "amplify",
+            "disregard",
+            "exploit"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Autonomous vehicles must be programmed to make ________ decisions in critical situations.",
+          "options": [
+            "ethical",
+            "impulsive",
+            "irrelevant",
+            "careless"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The use of biometric data has led to debates over individual ________.",
+          "options": [
+            "rights",
+            "anonymity",
+            "identification",
+            "responsibilities"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Tech companies are encouraged to adopt ________ practices when developing new products.",
+          "options": [
+            "sustainable",
+            "transparent",
+            "unethical",
+            "irrelevant"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation.",
+          "options": [
+            "address",
+            "provide",
+            "promote",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation.",
+          "options": [
+            "address",
+            "provide",
+            "promote",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation.",
+          "options": [
+            "address",
+            "provide",
+            "promote",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "As technology evolves, society must ________ the ethical challenges that come with it. For example, artificial intelligence applications can ________ significant benefits but also raise concerns about bias and accountability. It is essential to establish regulations that ________ responsible innovation."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Ethical frameworks must be developed alongside technological advancements.\nB) Governments and organizations must collaborate to enforce these standards.\nC) Public awareness about the ethical use of technology is also critical.\nD) Emerging technologies often outpace the creation of relevant regulations.\nE) Without proper oversight, misuse of technology can have harmful consequences.",
+          "options": [
+            "B -> D -> A -> E -> C",
+            "C -> B -> D -> E -> A",
+            "D -> E -> A -> B -> C",
+            "B -> C -> A -> D -> E"
+          ],
+          "answer": 2
+        },
+        {
+          "type": "reading",
+          "question": "What is one ethical concern about AI?",
+          "options": [
+            "Limited applications",
+            "Perpetuating biases",
+            "Reduced efficiency",
+            "Lack of funding"
+          ],
+          "answer": 1,
+          "passage": "Artificial intelligence (AI) is revolutionizing industries but also sparking ethical debates. One major concern is the potential for AI systems to perpetuate biases present in their training data. Additionally, the lack of transparency in AI decision-making raises questions about accountability. Experts argue that ethical AI development should prioritize fairness, transparency, and the protection of individual rights."
+        },
+        {
+          "type": "reading",
+          "question": "Why is transparency in AI important?",
+          "options": [
+            "To enhance data privacy",
+            "To improve accountability",
+            "To increase efficiency",
+            "To reduce applications"
+          ],
+          "answer": 1,
+          "passage": "Artificial intelligence (AI) is revolutionizing industries but also sparking ethical debates. One major concern is the potential for AI systems to perpetuate biases present in their training data. Additionally, the lack of transparency in AI decision-making raises questions about accountability. Experts argue that ethical AI development should prioritize fairness, transparency, and the protection of individual rights."
+        },
+        {
+          "type": "reading",
+          "question": "What do experts suggest prioritizing in AI development?",
+          "options": [
+            "Profitability",
+            "Fairness and transparency",
+            "Faster development",
+            "Minimal regulations"
+          ],
+          "answer": 1,
+          "passage": "Artificial intelligence (AI) is revolutionizing industries but also sparking ethical debates. One major concern is the potential for AI systems to perpetuate biases present in their training data. Additionally, the lack of transparency in AI decision-making raises questions about accountability. Experts argue that ethical AI development should prioritize fairness, transparency, and the protection of individual rights."
+        }
+      ]
+    },
+    {
+      "setNum": 9,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "Income inequality has become a pressing ________ in many countries.",
+          "options": [
+            "opportunity",
+            "issue",
+            "advantage",
+            "success"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The government launched programs to ________ poverty in rural areas.",
+          "options": [
+            "alleviate",
+            "aggravate",
+            "neglect",
+            "celebrate"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "The rapid growth of urban populations has led to a ________ in affordable housing.",
+          "options": [
+            "shortage",
+            "surplus",
+            "stability",
+            "balance"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Non-governmental organizations (NGOs) often play a key role in ________ social change.",
+          "options": [
+            "opposing",
+            "promoting",
+            "resisting",
+            "ignoring"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Community leaders are working to ________ awareness about mental health issues.",
+          "options": [
+            "suppress",
+            "raise",
+            "overlook",
+            "eliminate"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support.",
+          "options": [
+            "exacerbated",
+            "develop",
+            "comprehensive",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support.",
+          "options": [
+            "exacerbated",
+            "develop",
+            "comprehensive",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support.",
+          "options": [
+            "exacerbated",
+            "develop",
+            "comprehensive",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "Homelessness is a growing problem in many urban areas. Rising housing costs and unemployment have ________ this issue. Governments and charities are working together to ________ solutions, such as providing affordable housing and job training programs. Addressing homelessness requires a ________ approach that includes education, healthcare, and economic support."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Long-term solutions involve addressing systemic issues like poverty and unemployment.\nB) Affordable housing projects can offer immediate relief.\nC) Homelessness is a multifaceted problem that requires urgent attention.\nD) Collaboration between government, NGOs, and communities is essential.\nE) Mental health services should be integrated into support programs.",
+          "options": [
+            "C -> B -> D -> E -> A",
+            "D -> A -> E -> C -> B",
+            "D -> E -> A -> B -> C",
+            "B -> E -> C -> A -> D"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "reading",
+          "question": "What is a barrier to education in developing countries?",
+          "options": [
+            "Excessive school funding",
+            "Lack of learning materials",
+            "Overqualified teachers",
+            "Surplus of schools"
+          ],
+          "answer": 1,
+          "passage": "Access to quality education is a fundamental right, but disparities persist worldwide. In many developing countries, children face barriers such as lack of schools, qualified teachers, and learning materials. Education initiatives focus on building infrastructure, training educators, and providing scholarships to underserved communities. These efforts are crucial for breaking the cycle of poverty and creating opportunities for future generations."
+        },
+        {
+          "type": "reading",
+          "question": "What do education initiatives aim to do?",
+          "options": [
+            "Reduce infrastructure",
+            "Train educators and provide scholarships",
+            "Eliminate schools in rural areas",
+            "Discourage children from attending school"
+          ],
+          "answer": 1,
+          "passage": "Access to quality education is a fundamental right, but disparities persist worldwide. In many developing countries, children face barriers such as lack of schools, qualified teachers, and learning materials. Education initiatives focus on building infrastructure, training educators, and providing scholarships to underserved communities. These efforts are crucial for breaking the cycle of poverty and creating opportunities for future generations."
+        },
+        {
+          "type": "reading",
+          "question": "How does access to education impact poverty?",
+          "options": [
+            "It perpetuates poverty cycles.",
+            "It helps break the poverty cycle.",
+            "It increases financial inequality.",
+            "It has no impact."
+          ],
+          "answer": 1,
+          "passage": "Access to quality education is a fundamental right, but disparities persist worldwide. In many developing countries, children face barriers such as lack of schools, qualified teachers, and learning materials. Education initiatives focus on building infrastructure, training educators, and providing scholarships to underserved communities. These efforts are crucial for breaking the cycle of poverty and creating opportunities for future generations."
+        }
+      ]
+    },
+    {
+      "setNum": 10,
+      "questions": [
+        {
+          "type": "vocabulary",
+          "question": "Effective communication is essential to ________ teamwork in the workplace.",
+          "options": [
+            "disrupt",
+            "foster",
+            "reject",
+            "question"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The manager encouraged employees to ________ creative solutions to problems.",
+          "options": [
+            "propose",
+            "avoid",
+            "dismiss",
+            "suppress"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "vocabulary",
+          "question": "Career advancement often requires individuals to ________ their skills and knowledge.",
+          "options": [
+            "maintain",
+            "expand",
+            "ignore",
+            "minimize"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "The company implemented new policies to ________ workplace diversity.",
+          "options": [
+            "hinder",
+            "promote",
+            "challenge",
+            "disregard"
+          ],
+          "answer": 1
+        },
+        {
+          "type": "vocabulary",
+          "question": "Employees are encouraged to provide ________ feedback during team meetings.",
+          "options": [
+            "constructive",
+            "destructive",
+            "irrelevant",
+            "passive"
+          ],
+          "answer": 0
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 6 in the passage: In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities.",
+          "options": [
+            "develop",
+            "showcasing",
+            "explore",
+            "--"
+          ],
+          "answer": 0,
+          "passage": "In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 7 in the passage: In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities.",
+          "options": [
+            "develop",
+            "showcasing",
+            "explore",
+            "--"
+          ],
+          "answer": 1,
+          "passage": "In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities."
+        },
+        {
+          "type": "cloze",
+          "question": "Blank 8 in the passage: In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities.",
+          "options": [
+            "develop",
+            "showcasing",
+            "explore",
+            "--"
+          ],
+          "answer": 2,
+          "passage": "In today’s competitive job market, professionals need to ________ a strong personal brand. This involves highlighting their unique strengths and ________ relevant skills. Networking also plays a critical role in career growth, as it allows individuals to build connections and ________ opportunities."
+        },
+        {
+          "type": "ordering",
+          "question": "Rearrange the following sentences into a logical order:\nA) Mentorship programs can provide valuable guidance to young professionals.\nB) Many companies offer training programs to help employees enhance their skills.\nC) Building a supportive workplace culture fosters innovation and collaboration.\nD) Professional development is crucial for career growth and job satisfaction.\nE) Regular performance reviews help employees set and achieve their goals.",
+          "options": [
+            "D -> E -> A -> C -> B",
+            "E -> A -> C -> B -> D",
+            "D -> B -> A -> E -> C",
+            "D -> C -> B -> A -> E"
+          ],
+          "answer": 2
+        },
+        {
+          "type": "reading",
+          "question": "What is a cause of workplace stress mentioned in the passage?",
+          "options": [
+            "Flexible deadlines",
+            "High workloads",
+            "Supportive environments",
+            "Lack of mental health resources"
+          ],
+          "answer": 1,
+          "passage": "Workplace stress is a growing concern among employees and employers. High workloads, tight deadlines, and lack of support can lead to burnout, negatively impacting productivity and well-being. Employers are addressing this issue by promoting work-life balance, offering mental health resources, and creating supportive environments. Research shows that reducing workplace stress not only benefits employees but also improves overall company performance."
+        },
+        {
+          "type": "reading",
+          "question": "What is one way employers can reduce workplace stress?",
+          "options": [
+            "Increase workloads",
+            "Promote work-life balance",
+            "Eliminate deadlines",
+            "Avoid mental health resources"
+          ],
+          "answer": 1,
+          "passage": "Workplace stress is a growing concern among employees and employers. High workloads, tight deadlines, and lack of support can lead to burnout, negatively impacting productivity and well-being. Employers are addressing this issue by promoting work-life balance, offering mental health resources, and creating supportive environments. Research shows that reducing workplace stress not only benefits employees but also improves overall company performance."
+        },
+        {
+          "type": "reading",
+          "question": "How does reducing workplace stress benefit companies?",
+          "options": [
+            "It improves employee well-being and productivity.",
+            "It eliminates the need for supportive environments.",
+            "It reduces company performance.",
+            "It creates tighter deadlines."
+          ],
+          "answer": 0,
+          "passage": "Workplace stress is a growing concern among employees and employers. High workloads, tight deadlines, and lack of support can lead to burnout, negatively impacting productivity and well-being. Employers are addressing this issue by promoting work-life balance, offering mental health resources, and creating supportive environments. Research shows that reducing workplace stress not only benefits employees but also improves overall company performance."
+        }
+      ]
+    }
+  ]
+};
+
+</script>
 
 <script>
 // ============ DATA ============
@@ -1375,7 +3232,7 @@ function shuffle(arr) {
 // ============ MODE SWITCHING ============
 function switchMode(mode) {
   currentMode = mode;
-  const modes = ['flashcard','quiz','spelling','wordlist','fillblank','original'];
+  const modes = ['flashcard','quiz','spelling','wordlist','fillblank','original','exambank'];
   document.querySelectorAll('.nav-btn').forEach((btn, i) => {
     btn.classList.toggle('active', modes[i] === mode);
   });
@@ -1389,6 +3246,7 @@ function switchMode(mode) {
   else if (mode === 'wordlist') renderWordlist();
   else if (mode === 'fillblank') startFillBlank();
   else if (mode === 'original') renderOriginal();
+  else if (mode === 'exambank') initExamBank();
 }
 
 function clearAllSessions() {
@@ -2213,6 +4071,138 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// ============ EXAM BANK MODE ============
+let ebSetIdx = -1;
+let ebQuestions = [];
+let ebIndex = 0;
+let ebCorrect = 0;
+let ebAnswered = false;
+
+const EB_TYPE_LABELS = { vocabulary: '词汇选择', cloze: '完型填空', ordering: '排序题', reading: '阅读理解' };
+
+function initExamBank() {
+  const select = document.getElementById('eb-set-select');
+  // Populate set options if not already done
+  if (select.options.length <= 1) {
+    QUIZ_BANK.sets.forEach((s, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `第${s.setNum}套 (${s.questions.length} 题)`;
+      select.appendChild(opt);
+    });
+  }
+  // Reset UI
+  document.getElementById('eb-area').classList.add('hidden');
+  document.getElementById('eb-result').classList.add('hidden');
+  document.getElementById('eb-counter').textContent = '';
+  document.getElementById('eb-progress').style.width = '0%';
+}
+
+function onExamSetChange() {
+  const val = parseInt(document.getElementById('eb-set-select').value);
+  if (isNaN(val) || val < 0) return;
+  ebSetIdx = val;
+  startExamBank();
+}
+
+function startExamBank() {
+  if (ebSetIdx < 0 || ebSetIdx >= QUIZ_BANK.sets.length) return;
+  ebQuestions = QUIZ_BANK.sets[ebSetIdx].questions;
+  ebIndex = 0;
+  ebCorrect = 0;
+  ebAnswered = false;
+  document.getElementById('eb-area').classList.remove('hidden');
+  document.getElementById('eb-result').classList.add('hidden');
+  showExamQuestion();
+}
+
+function showExamQuestion() {
+  if (ebIndex >= ebQuestions.length) {
+    showExamResult();
+    return;
+  }
+  ebAnswered = false;
+  const q = ebQuestions[ebIndex];
+  const typeName = EB_TYPE_LABELS[q.type] || q.type;
+
+  // Type badge
+  const badge = document.getElementById('eb-type');
+  badge.textContent = typeName;
+  badge.className = 'eb-type-badge eb-type-' + q.type;
+
+  // Passage (for cloze and reading)
+  const passageEl = document.getElementById('eb-passage');
+  if (q.passage) {
+    passageEl.innerHTML = q.passage.replace(/________/g, '<span class="blank">______</span>');
+    passageEl.classList.remove('hidden');
+  } else {
+    passageEl.classList.add('hidden');
+  }
+
+  // Question
+  document.getElementById('eb-question').textContent = q.question;
+
+  // Options
+  const letters = ['A', 'B', 'C', 'D'];
+  document.getElementById('eb-options').innerHTML = q.options.map((opt, i) => `
+    <div class="quiz-option" onclick="answerExam(${i})" data-opt="${i}">
+      <span class="opt-letter">${letters[i]}</span>
+      <span>${opt}</span>
+    </div>
+  `).join('');
+
+  // Hide detail
+  document.getElementById('eb-detail').classList.add('hidden');
+  document.getElementById('eb-options').style.opacity = '1';
+  document.getElementById('eb-options').style.pointerEvents = 'auto';
+
+  // Counter & progress
+  document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
+  document.getElementById('eb-progress').style.width = `${(ebIndex / ebQuestions.length) * 100}%`;
+}
+
+function answerExam(optIdx) {
+  if (ebAnswered) return;
+  ebAnswered = true;
+  const q = ebQuestions[ebIndex];
+  const options = document.querySelectorAll('#eb-options .quiz-option');
+
+  // Highlight correct answer
+  options[q.answer].classList.add('correct');
+
+  if (optIdx === q.answer) {
+    ebCorrect++;
+    options[optIdx].classList.add('correct');
+    document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
+    // Auto-advance
+    setTimeout(() => { ebIndex++; showExamQuestion(); }, 800);
+  } else {
+    options[optIdx].classList.add('wrong');
+    document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
+    // Show correct answer detail
+    const correctLetter = ['A', 'B', 'C', 'D'][q.answer];
+    document.getElementById('eb-detail-answer').innerHTML = `<span style="color:var(--danger);font-weight:700;">正确答案：${correctLetter}. ${q.options[q.answer]}</span>`;
+    document.getElementById('eb-detail').classList.remove('hidden');
+    document.getElementById('eb-options').style.opacity = '0.4';
+    document.getElementById('eb-options').style.pointerEvents = 'none';
+  }
+}
+
+function nextExamQuestion() {
+  ebIndex++;
+  showExamQuestion();
+}
+
+function showExamResult() {
+  document.getElementById('eb-area').classList.add('hidden');
+  const pct = Math.round((ebCorrect / ebQuestions.length) * 100);
+  document.getElementById('eb-score').textContent = pct + '%';
+  let text = pct >= 90 ? '太厉害了！' : pct >= 70 ? '不错，继续加油！' : pct >= 50 ? '还需要多练习' : '建议多复习一下';
+  document.getElementById('eb-result-text').textContent = `答对 ${ebCorrect}/${ebQuestions.length}，${text}`;
+  document.getElementById('eb-result').classList.remove('hidden');
+  document.getElementById('eb-progress').style.width = '100%';
+}
 
 // ============ SYNC CODE ============
 function exportProgress() {
