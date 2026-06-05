@@ -680,6 +680,49 @@
   .eb-area .quiz-card-detail {
     margin-top: 12px;
   }
+  /* Ordering question styles */
+  .eb-ordering-instruction {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 12px;
+  }
+  .eb-ordering-sentences {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .eb-ordering-sent {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    text-align: left;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .eb-ordering-sent .sent-label {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .eb-order-option {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
 
   /* === SPELLING MODE === */
   .spell-area {
@@ -4779,14 +4822,34 @@ function showExamQuestion() {
   }
 
   // Question
-  document.getElementById('eb-question').textContent = q.question;
+  if (q.type === 'ordering') {
+    // Parse ordering question: instruction + labeled sentences
+    const lines = q.question.split('\n').filter(l => l.trim());
+    const instruction = lines[0] || '';
+    const sentences = [];
+    for (let i = 1; i < lines.length; i++) {
+      const m = lines[i].match(/^([A-E])\)\s*(.+)$/);
+      if (m) sentences.push({ label: m[1], text: m[2] });
+      else sentences.push({ label: String.fromCharCode(65 + i - 1), text: lines[i] });
+    }
+    let qHtml = `<div class="eb-ordering-instruction">${instruction}</div>`;
+    qHtml += '<div class="eb-ordering-sentences">';
+    for (const s of sentences) {
+      qHtml += `<div class="eb-ordering-sent"><span class="sent-label">${s.label}</span><span>${s.text}</span></div>`;
+    }
+    qHtml += '</div>';
+    document.getElementById('eb-question').innerHTML = qHtml;
+  } else {
+    document.getElementById('eb-question').textContent = q.question;
+  }
 
   // Options
   const letters = ['A', 'B', 'C', 'D'];
+  const isOrdering = q.type === 'ordering';
   document.getElementById('eb-options').innerHTML = q.options.map((opt, i) => `
     <div class="quiz-option${ebStatus[ebIndex] !== null ? (i === q.answer ? ' correct' : '') : ''}${ebStatus[ebIndex] === 'wrong' && i !== q.answer ? '' : ''}" onclick="answerExam(${i})" data-opt="${i}">
       <span class="opt-letter">${letters[i]}</span>
-      <span>${opt}</span>
+      <span class="${isOrdering ? 'eb-order-option' : ''}">${opt.replace(/->/g, ' → ')}</span>
     </div>
   `).join('');
 
