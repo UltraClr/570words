@@ -549,6 +549,104 @@
     font-weight: 800;
     color: var(--primary);
   }
+  /* Answer Sheet */
+  .eb-sheet-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 0 auto 16px;
+    max-width: 700px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .eb-sheet-toggle:hover { border-color: var(--primary); }
+  .eb-sheet-arrow { font-size: 12px; color: var(--text-light); transition: transform 0.2s; }
+  .eb-sheet-arrow.open { transform: rotate(180deg); }
+  .eb-answer-sheet {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 0 auto 20px;
+    max-width: 700px;
+  }
+  .eb-sheet-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .eb-sheet-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .eb-sheet-btn:hover { border-color: var(--primary); transform: scale(1.08); }
+  .eb-sheet-btn.current { border-color: var(--primary); background: var(--primary); color: white; }
+  .eb-sheet-btn.correct { border-color: var(--success); background: #dcfce7; color: #166534; }
+  .eb-sheet-btn.wrong { border-color: var(--danger); background: #fef2f2; color: #991b1b; }
+  .eb-sheet-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .eb-sheet-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .eb-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  /* Exam nav */
+  .eb-nav {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 0 16px;
+  }
+  .eb-nav .btn-prev, .eb-nav .btn-next {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .eb-nav .btn-next {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .eb-nav .btn-prev:disabled, .eb-nav .btn-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   /* === SPELLING MODE === */
   .spell-area {
@@ -1252,6 +1350,14 @@
       </select>
     </div>
     <div class="eb-area hidden" id="eb-area">
+      <!-- Answer Sheet Toggle -->
+      <div class="eb-sheet-toggle" onclick="toggleAnswerSheet()">
+        <span id="eb-sheet-summary">答题卡</span>
+        <span class="eb-sheet-arrow" id="eb-sheet-arrow">▼</span>
+      </div>
+      <!-- Answer Sheet Grid -->
+      <div class="eb-answer-sheet hidden" id="eb-answer-sheet"></div>
+      <!-- Question Area -->
       <div class="eb-type-badge" id="eb-type"></div>
       <div class="eb-passage hidden" id="eb-passage"></div>
       <div class="quiz-question">
@@ -1265,6 +1371,11 @@
         <div style="text-align:center; margin-top:16px;">
           <button class="btn-next" onclick="nextExamQuestion()">继续下一题 →</button>
         </div>
+      </div>
+      <!-- Navigation -->
+      <div class="eb-nav">
+        <button class="btn-prev" onclick="prevExamQuestion()">← 上一题</button>
+        <button class="btn-next" onclick="nextExamQuestion()" id="eb-next-btn">下一题 →</button>
       </div>
     </div>
     <div class="eb-result hidden" id="eb-result">
@@ -4078,12 +4189,13 @@ let ebQuestions = [];
 let ebIndex = 0;
 let ebCorrect = 0;
 let ebAnswered = false;
+let ebStatus = []; // null = unanswered, 'correct', 'wrong'
+let ebSheetOpen = false;
 
 const EB_TYPE_LABELS = { vocabulary: '词汇选择', cloze: '完型填空', ordering: '排序题', reading: '阅读理解' };
 
 function initExamBank() {
   const select = document.getElementById('eb-set-select');
-  // Populate set options if not already done
   if (select.options.length <= 1) {
     QUIZ_BANK.sets.forEach((s, i) => {
       const opt = document.createElement('option');
@@ -4092,7 +4204,6 @@ function initExamBank() {
       select.appendChild(opt);
     });
   }
-  // Reset UI
   document.getElementById('eb-area').classList.add('hidden');
   document.getElementById('eb-result').classList.add('hidden');
   document.getElementById('eb-counter').textContent = '';
@@ -4112,8 +4223,49 @@ function startExamBank() {
   ebIndex = 0;
   ebCorrect = 0;
   ebAnswered = false;
+  ebStatus = new Array(ebQuestions.length).fill(null);
+  ebSheetOpen = false;
   document.getElementById('eb-area').classList.remove('hidden');
   document.getElementById('eb-result').classList.add('hidden');
+  document.getElementById('eb-answer-sheet').classList.add('hidden');
+  document.getElementById('eb-sheet-arrow').classList.remove('open');
+  renderAnswerSheet();
+  showExamQuestion();
+}
+
+function renderAnswerSheet() {
+  const answered = ebStatus.filter(s => s !== null).length;
+  const correct = ebStatus.filter(s => s === 'correct').length;
+  document.getElementById('eb-sheet-summary').textContent =
+    `答题卡 · 已答 ${answered}/${ebQuestions.length} · 正确 ${correct}`;
+
+  let html = '<div class="eb-sheet-grid">';
+  for (let i = 0; i < ebQuestions.length; i++) {
+    let cls = 'eb-sheet-btn';
+    if (i === ebIndex) cls += ' current';
+    else if (ebStatus[i] === 'correct') cls += ' correct';
+    else if (ebStatus[i] === 'wrong') cls += ' wrong';
+    html += `<button class="${cls}" onclick="jumpToQuestion(${i})">${i + 1}</button>`;
+  }
+  html += '</div>';
+  html += `<div class="eb-sheet-legend">
+    <span><span class="eb-legend-dot" style="background:#dcfce7;border:2px solid var(--success);"></span> 正确</span>
+    <span><span class="eb-legend-dot" style="background:#fef2f2;border:2px solid var(--danger);"></span> 错误</span>
+    <span><span class="eb-legend-dot" style="background:var(--primary);"></span> 当前</span>
+    <span><span class="eb-legend-dot" style="background:white;border:2px solid var(--border);"></span> 未答</span>
+  </div>`;
+  document.getElementById('eb-answer-sheet').innerHTML = html;
+}
+
+function toggleAnswerSheet() {
+  ebSheetOpen = !ebSheetOpen;
+  document.getElementById('eb-answer-sheet').classList.toggle('hidden', !ebSheetOpen);
+  document.getElementById('eb-sheet-arrow').classList.toggle('open', ebSheetOpen);
+}
+
+function jumpToQuestion(idx) {
+  if (idx < 0 || idx >= ebQuestions.length) return;
+  ebIndex = idx;
   showExamQuestion();
 }
 
@@ -4122,8 +4274,8 @@ function showExamQuestion() {
     showExamResult();
     return;
   }
-  ebAnswered = false;
   const q = ebQuestions[ebIndex];
+  ebAnswered = ebStatus[ebIndex] !== null;
   const typeName = EB_TYPE_LABELS[q.type] || q.type;
 
   // Type badge
@@ -4131,7 +4283,7 @@ function showExamQuestion() {
   badge.textContent = typeName;
   badge.className = 'eb-type-badge eb-type-' + q.type;
 
-  // Passage (for cloze and reading)
+  // Passage
   const passageEl = document.getElementById('eb-passage');
   if (q.passage) {
     passageEl.innerHTML = q.passage.replace(/________/g, '<span class="blank">______</span>');
@@ -4146,20 +4298,46 @@ function showExamQuestion() {
   // Options
   const letters = ['A', 'B', 'C', 'D'];
   document.getElementById('eb-options').innerHTML = q.options.map((opt, i) => `
-    <div class="quiz-option" onclick="answerExam(${i})" data-opt="${i}">
+    <div class="quiz-option${ebStatus[ebIndex] !== null ? (i === q.answer ? ' correct' : '') : ''}${ebStatus[ebIndex] === 'wrong' && i !== q.answer ? '' : ''}" onclick="answerExam(${i})" data-opt="${i}">
       <span class="opt-letter">${letters[i]}</span>
       <span>${opt}</span>
     </div>
   `).join('');
 
-  // Hide detail
-  document.getElementById('eb-detail').classList.add('hidden');
-  document.getElementById('eb-options').style.opacity = '1';
-  document.getElementById('eb-options').style.pointerEvents = 'auto';
+  // If already answered, disable interaction and show result
+  if (ebAnswered) {
+    const opts = document.querySelectorAll('#eb-options .quiz-option');
+    document.getElementById('eb-options').style.opacity = '0.5';
+    document.getElementById('eb-options').style.pointerEvents = 'none';
+    // Show the stored answer status
+    if (ebStatus[ebIndex] === 'wrong') {
+      document.getElementById('eb-detail').classList.remove('hidden');
+    } else {
+      document.getElementById('eb-detail').classList.add('hidden');
+    }
+  } else {
+    document.getElementById('eb-detail').classList.add('hidden');
+    document.getElementById('eb-options').style.opacity = '1';
+    document.getElementById('eb-options').style.pointerEvents = 'auto';
+  }
+
+  // Nav buttons
+  document.querySelector('.eb-nav .btn-prev').disabled = ebIndex <= 0;
+  const nextBtn = document.getElementById('eb-next-btn');
+  if (ebIndex >= ebQuestions.length - 1) {
+    nextBtn.textContent = '查看结果';
+  } else {
+    nextBtn.textContent = '下一题 →';
+  }
 
   // Counter & progress
-  document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
-  document.getElementById('eb-progress').style.width = `${(ebIndex / ebQuestions.length) * 100}%`;
+  const answered = ebStatus.filter(s => s !== null).length;
+  document.getElementById('eb-counter').textContent =
+    `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 已答 ${answered} · 正确 ${ebCorrect}`;
+  document.getElementById('eb-progress').style.width = `${(answered / ebQuestions.length) * 100}%`;
+
+  // Update answer sheet highlight
+  renderAnswerSheet();
 }
 
 function answerExam(optIdx) {
@@ -4168,38 +4346,70 @@ function answerExam(optIdx) {
   const q = ebQuestions[ebIndex];
   const options = document.querySelectorAll('#eb-options .quiz-option');
 
-  // Highlight correct answer
   options[q.answer].classList.add('correct');
 
   if (optIdx === q.answer) {
     ebCorrect++;
+    ebStatus[ebIndex] = 'correct';
     options[optIdx].classList.add('correct');
-    document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
-    // Auto-advance
-    setTimeout(() => { ebIndex++; showExamQuestion(); }, 800);
   } else {
+    ebStatus[ebIndex] = 'wrong';
     options[optIdx].classList.add('wrong');
-    document.getElementById('eb-counter').textContent = `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 正确 ${ebCorrect}`;
-    // Show correct answer detail
     const correctLetter = ['A', 'B', 'C', 'D'][q.answer];
-    document.getElementById('eb-detail-answer').innerHTML = `<span style="color:var(--danger);font-weight:700;">正确答案：${correctLetter}. ${q.options[q.answer]}</span>`;
+    document.getElementById('eb-detail-answer').innerHTML =
+      `<span style="color:var(--danger);font-weight:700;">正确答案：${correctLetter}. ${q.options[q.answer]}</span>`;
     document.getElementById('eb-detail').classList.remove('hidden');
-    document.getElementById('eb-options').style.opacity = '0.4';
-    document.getElementById('eb-options').style.pointerEvents = 'none';
+  }
+
+  document.getElementById('eb-options').style.opacity = '0.5';
+  document.getElementById('eb-options').style.pointerEvents = 'none';
+
+  // Update counter and answer sheet
+  const answered = ebStatus.filter(s => s !== null).length;
+  document.getElementById('eb-counter').textContent =
+    `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 已答 ${answered} · 正确 ${ebCorrect}`;
+  document.getElementById('eb-progress').style.width = `${(answered / ebQuestions.length) * 100}%`;
+  renderAnswerSheet();
+
+  // Auto-advance after short delay if correct
+  if (ebStatus[ebIndex] === 'correct' && ebIndex < ebQuestions.length - 1) {
+    setTimeout(() => { ebIndex++; showExamQuestion(); }, 600);
+  } else if (ebIndex >= ebQuestions.length - 1 && answered === ebQuestions.length) {
+    setTimeout(() => showExamResult(), 800);
   }
 }
 
+function prevExamQuestion() {
+  if (ebIndex > 0) { ebIndex--; showExamQuestion(); }
+}
+
 function nextExamQuestion() {
-  ebIndex++;
-  showExamQuestion();
+  if (ebIndex < ebQuestions.length - 1) {
+    ebIndex++;
+    showExamQuestion();
+  } else {
+    const answered = ebStatus.filter(s => s !== null).length;
+    if (answered === ebQuestions.length) {
+      showExamResult();
+    } else {
+      // Jump to first unanswered
+      const first = ebStatus.findIndex(s => s === null);
+      if (first >= 0) jumpToQuestion(first);
+    }
+  }
 }
 
 function showExamResult() {
   document.getElementById('eb-area').classList.add('hidden');
   const pct = Math.round((ebCorrect / ebQuestions.length) * 100);
   document.getElementById('eb-score').textContent = pct + '%';
+  const wrong = ebStatus.filter(s => s === 'wrong').length;
+  const unanswered = ebStatus.filter(s => s === null).length;
   let text = pct >= 90 ? '太厉害了！' : pct >= 70 ? '不错，继续加油！' : pct >= 50 ? '还需要多练习' : '建议多复习一下';
-  document.getElementById('eb-result-text').textContent = `答对 ${ebCorrect}/${ebQuestions.length}，${text}`;
+  let extra = '';
+  if (unanswered > 0) extra = `（${unanswered} 题未答）`;
+  document.getElementById('eb-result-text').textContent =
+    `答对 ${ebCorrect}，答错 ${wrong}${extra} / 共 ${ebQuestions.length} 题，${text}`;
   document.getElementById('eb-result').classList.remove('hidden');
   document.getElementById('eb-progress').style.width = '100%';
 }
