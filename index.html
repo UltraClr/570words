@@ -434,6 +434,41 @@
     font-size: 14px;
     flex-shrink: 0;
   }
+  .quiz-card-detail {
+    margin-top: 20px;
+    animation: fadeSlideUp 0.4s ease;
+  }
+  .quiz-card-inner {
+    background: white;
+    border: 2px solid var(--danger);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .quiz-card-inner .quiz-detail-word {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .quiz-card-inner .definition {
+    font-size: 16px;
+    color: var(--text-light);
+    margin: 12px 0;
+  }
+  .quiz-card-inner .collocations,
+  .quiz-card-inner .derivatives {
+    text-align: left;
+    margin-top: 12px;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .quiz-result {
     text-align: center;
     padding: 30px;
@@ -921,6 +956,19 @@
         <div class="q-text" id="qz-question">分析</div>
       </div>
       <div class="quiz-options" id="qz-options"></div>
+      <!-- Card detail shown on wrong answer -->
+      <div class="quiz-card-detail hidden" id="qz-detail">
+        <div class="quiz-card-inner">
+          <div class="quiz-detail-word"><span id="qz-detail-word"></span><span class="pos-tag" id="qz-detail-pos"></span></div>
+          <div class="phonetic" id="qz-detail-phonetic"></div>
+          <div class="definition" id="qz-detail-def"></div>
+          <div class="collocations" id="qz-detail-coll"></div>
+          <div class="derivatives" id="qz-detail-deriv"></div>
+        </div>
+        <div style="text-align:center; margin-top:16px;">
+          <button class="btn-next" onclick="nextQuizQuestion()">继续下一题 →</button>
+        </div>
+      </div>
       <div style="text-align:center; margin-top:20px;">
         <button class="btn-next hidden" id="qz-next" onclick="nextQuizQuestion()">下一题</button>
       </div>
@@ -1495,8 +1543,15 @@ function showQuizQuestion() {
   const w = WORDS[idx];
   qzAnswered = false;
 
-  document.getElementById('qz-question').textContent = w.d;
+  // Hide detail panel and next button
+  document.getElementById('qz-detail').classList.add('hidden');
   document.getElementById('qz-next').classList.add('hidden');
+  // Restore options visibility
+  const optsEl = document.getElementById('qz-options');
+  optsEl.style.opacity = '1';
+  optsEl.style.pointerEvents = 'auto';
+
+  document.getElementById('qz-question').textContent = w.d;
   document.getElementById('qz-counter').textContent = `第 ${qzIndex + 1} 题 / 共 ${qzQuestions.length} 题 · 正确 ${qzCorrect}`;
   document.getElementById('qz-progress').style.width = `${(qzIndex / qzQuestions.length) * 100}%`;
 
@@ -1526,17 +1581,45 @@ function answerQuiz(optIdx, isCorrect) {
     }
   });
 
+  const wordIdx = qzQuestions[qzIndex];
+  document.getElementById('qz-counter').textContent = `第 ${qzIndex + 1} 题 / 共 ${qzQuestions.length} 题 · 正确 ${qzCorrect}`;
+
   if (isCorrect) {
     qzCorrect++;
     options[optIdx].classList.add('correct');
-    markResult(qzQuestions[qzIndex], true);
+    markResult(wordIdx, true);
+    document.getElementById('qz-counter').textContent = `第 ${qzIndex + 1} 题 / 共 ${qzQuestions.length} 题 · 正确 ${qzCorrect}`;
+    // Auto-advance after short delay
+    setTimeout(() => {
+      qzIndex++;
+      showQuizQuestion();
+    }, 800);
   } else {
     options[optIdx].classList.add('wrong');
-    markResult(qzQuestions[qzIndex], false);
+    markResult(wordIdx, false);
+    document.getElementById('qz-counter').textContent = `第 ${qzIndex + 1} 题 / 共 ${qzQuestions.length} 题 · 正确 ${qzCorrect}`;
+    // Show card detail for the word
+    showQuizCardDetail(wordIdx);
   }
+}
 
-  document.getElementById('qz-counter').textContent = `第 ${qzIndex + 1} 题 / 共 ${qzQuestions.length} 题 · 正确 ${qzCorrect}`;
-  document.getElementById('qz-next').classList.remove('hidden');
+function showQuizCardDetail(idx) {
+  const w = WORDS[idx];
+  const ex = EXTRAS[idx];
+
+  document.getElementById('qz-detail-word').textContent = w.w;
+  document.getElementById('qz-detail-pos').textContent = POS[w.w] || '';
+  document.getElementById('qz-detail-phonetic').innerHTML = getPhoneticHtml(w.w);
+  document.getElementById('qz-detail-def').textContent = w.d;
+  document.getElementById('qz-detail-coll').innerHTML = (ex && ex.c && ex.c.length > 0)
+    ? `<div class="coll-label">常用搭配</div>` + ex.c.map(c => typeof c === 'string' ? `<span class="coll-tag">${c}</span>` : `<span class="coll-tag">${c.en}<span class="coll-zh">${c.zh ? ' ' + c.zh : ''}</span></span>`).join('')
+    : '';
+  document.getElementById('qz-detail-deriv').innerHTML = getDerivativesHtml(w.w);
+  document.getElementById('qz-detail').classList.remove('hidden');
+
+  // Hide the options to make room
+  document.getElementById('qz-options').style.opacity = '0.4';
+  document.getElementById('qz-options').style.pointerEvents = 'none';
 }
 
 function nextQuizQuestion() {
