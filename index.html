@@ -746,6 +746,179 @@
     margin-top: 12px;
   }
 
+  /* === FILL-BLANK REDESIGN === */
+  .fb-area {
+    max-width: 640px;
+    margin: 20px auto;
+    padding: 0 16px;
+  }
+  .fb-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .fb-sentence {
+    font-size: 16px;
+    line-height: 1.9;
+    color: var(--text);
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .fb-sentence .blank {
+    display: inline-block;
+    min-width: 60px;
+    border-bottom: 2px dashed var(--primary);
+    padding: 1px 6px;
+    margin: 0 2px;
+    color: var(--primary);
+    font-weight: 600;
+    text-align: center;
+  }
+  .fb-letter-boxes {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .fb-letter-box {
+    width: 38px;
+    height: 44px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: lowercase;
+    transition: all 0.15s;
+    background: white;
+  }
+  .fb-letter-box.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+  }
+  .fb-letter-box.filled {
+    border-color: var(--primary);
+    background: #f5f3ff;
+  }
+  .fb-letter-box.revealed {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #b45309;
+  }
+  .fb-letter-box.correct {
+    border-color: var(--success);
+    background: #f0fdf4;
+    color: #166534;
+  }
+  .fb-letter-box.wrong {
+    border-color: var(--danger);
+    background: #fef2f2;
+    color: #991b1b;
+  }
+  .fb-hint-info {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .fb-hint-info .fb-pos {
+    display: inline-block;
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 8px;
+  }
+  .fb-hint-info .fb-def {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .fb-collocations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .fb-coll-chip {
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: #475569;
+  }
+  .fb-coll-chip .zh {
+    color: #94a3b8;
+    margin-left: 4px;
+  }
+  .fb-hidden-input {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+  }
+  .fb-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fb-hint-btn {
+    padding: 10px 20px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #64748b;
+  }
+  .fb-hint-btn:hover { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
+  .fb-hint-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .fb-submit-btn {
+    padding: 10px 28px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .fb-submit-btn:hover { background: var(--primary-dark); }
+  .fb-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .fb-feedback {
+    font-size: 15px;
+    min-height: 24px;
+    margin-top: 4px;
+  }
+  .fb-bottom-actions {
+    text-align: center;
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .fb-skip-btn {
+    padding: 10px 24px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #64748b;
+  }
+  .fb-skip-btn:hover { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+
   /* === PROGRESS PANEL === */
   .progress-panel {
     background: var(--card-bg);
@@ -1151,16 +1324,6 @@
     text-align: right;
   }
 
-  .fb-sentence .blank {
-    display: inline-block;
-    min-width: 80px;
-    border-bottom: 2px dashed var(--primary);
-    margin: 0 4px;
-    padding: 2px 8px;
-    color: var(--primary);
-    font-weight: 600;
-  }
-
   @media print {
     .header, .nav, .controls { display: none !important; }
     .main { padding: 0 !important; }
@@ -1344,21 +1507,32 @@
   <div id="mode-fillblank" class="hidden">
     <div class="progress-bar"><div class="progress-fill" id="fb-progress"></div></div>
     <div class="card-counter" id="fb-counter">第 0 题 / 共 0 题 · 正确 0</div>
-    <div class="spell-area">
-      <div class="spell-card" id="fb-card">
-        <div class="spell-label">根据上下文和中文提示，填入正确的单词</div>
-        <div class="fb-sentence" id="fb-sentence" style="font-size:18px;line-height:1.8;margin:20px 0;color:var(--text);"></div>
-        <div class="fb-hint" id="fb-hint" style="font-size:14px;color:var(--primary);font-weight:600;margin-bottom:20px;"></div>
-        <div class="spell-input-wrap">
-          <input type="text" class="spell-input" id="fb-input" placeholder="输入单词..." autocomplete="off" autocapitalize="off" spellcheck="false">
-          <button class="spell-submit" onclick="checkFillBlank()">确认</button>
+    <div class="fb-area">
+      <div class="fb-card" id="fb-card">
+        <!-- Sentence with inline blank -->
+        <div class="fb-sentence" id="fb-sentence"></div>
+        <!-- Letter boxes -->
+        <div class="fb-letter-boxes" id="fb-letters"></div>
+        <!-- Hint info -->
+        <div class="fb-hint-info" id="fb-hint-info"></div>
+        <!-- Collocations -->
+        <div class="fb-collocations" id="fb-collocations"></div>
+        <!-- Hidden input for keyboard capture -->
+        <input type="text" class="fb-hidden-input" id="fb-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <!-- Action buttons -->
+        <div class="fb-actions">
+          <button class="fb-hint-btn" id="fb-hint-btn" onclick="revealFbLetter()">💡 提示字母</button>
+          <button class="fb-submit-btn" id="fb-submit-btn" onclick="checkFillBlank()">确认</button>
         </div>
-        <div class="spell-feedback" id="fb-feedback"></div>
+        <!-- Feedback -->
+        <div class="fb-feedback" id="fb-feedback"></div>
       </div>
-      <div style="text-align:center; margin-top:16px;">
-        <button class="btn-next hidden" id="fb-next" onclick="nextFillBlank()">下一题</button>
-        <button class="btn-dunno" style="margin-left:12px;" id="fb-skip" onclick="showFillBlankAnswer()">显示答案</button>
+      <div class="fb-bottom-actions">
+        <button class="btn-next hidden" id="fb-next" onclick="nextFillBlank()">下一题 →</button>
+        <button class="fb-skip-btn" id="fb-skip" onclick="showFillBlankAnswer()">显示答案</button>
       </div>
+      <!-- Card detail for wrong answers -->
+      <div class="quiz-card-detail hidden" id="fb-detail"></div>
     </div>
     <div class="shortcut-hint">快捷键：<kbd>Enter</kbd> 确认/下一题</div>
   </div>
@@ -3897,47 +4071,50 @@ let fbQueue = [];
 let fbIndex = 0;
 let fbCorrect = 0;
 let fbAnswered = false;
+let fbRevealed = 0; // how many letters revealed via hint
+let fbTyped = ''; // what user has typed
 const FB_COUNT = 20;
 
 function startFillBlank() {
-  document.getElementById('fb-input').style.display = '';
-
-  // Try to restore saved fill-blank session
   const saved = restoreModeSession('fillblank');
   if (saved) {
     fbQueue = saved.queue;
     fbIndex = saved.index;
     fbCorrect = saved.correct;
     fbAnswered = false;
+    fbRevealed = 0;
+    fbTyped = '';
     showFillBlankQuestion();
     return;
   }
-
   let indices = getFilteredIndices();
-  // Filter to only words that have example sentences with blanks
   indices = indices.filter(i => EXTRAS[i] && EXTRAS[i].e.includes('___'));
   if (indices.length === 0) {
     document.getElementById('fb-sentence').textContent = '没有符合条件的例句';
-    document.getElementById('fb-input').style.display = 'none';
     return;
   }
   fbQueue = shuffle(indices).slice(0, Math.min(FB_COUNT, indices.length));
   fbIndex = 0;
   fbCorrect = 0;
   fbAnswered = false;
+  fbRevealed = 0;
+  fbTyped = '';
   showFillBlankQuestion();
 }
 
 function showFillBlankQuestion() {
   if (fbIndex >= fbQueue.length) {
     clearModeSession('fillblank');
-    document.getElementById('fb-sentence').innerHTML = '<span style="color:var(--primary);font-weight:700;font-size:22px;">练习完成!</span>';
-    document.getElementById('fb-hint').textContent = '';
-    document.getElementById('fb-input').style.display = 'none';
-    document.querySelector('#fb-card .spell-submit').style.display = 'none';
-    document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--primary);font-weight:700;font-size:20px;">正确率: ${Math.round(fbCorrect / fbQueue.length * 100)}%</span>`;
+    const pct = Math.round(fbCorrect / fbQueue.length * 100);
+    document.getElementById('fb-sentence').innerHTML = `<div style="text-align:center;padding:20px 0;"><span style="color:var(--primary);font-weight:700;font-size:22px;">练习完成!</span><br><span style="font-size:16px;color:var(--text-light);margin-top:8px;display:inline-block;">正确率 ${pct}%（${fbCorrect}/${fbQueue.length}）</span></div>`;
+    document.getElementById('fb-letters').innerHTML = '';
+    document.getElementById('fb-hint-info').innerHTML = '';
+    document.getElementById('fb-collocations').innerHTML = '';
+    document.getElementById('fb-feedback').innerHTML = '';
     document.getElementById('fb-next').classList.add('hidden');
     document.getElementById('fb-skip').classList.add('hidden');
+    document.querySelector('.fb-actions').style.display = 'none';
+    document.getElementById('fb-detail').classList.add('hidden');
     document.getElementById('fb-counter').textContent = `完成 ${fbQueue.length} 题`;
     document.getElementById('fb-progress').style.width = '100%';
     return;
@@ -3947,24 +4124,145 @@ function showFillBlankQuestion() {
   const idx = fbQueue[fbIndex];
   const w = WORDS[idx];
   const ex = EXTRAS[idx];
+  const word = w.w.toLowerCase();
   fbAnswered = false;
+  fbRevealed = 0;
+  fbTyped = '';
 
-  // Show sentence with blank highlighted
+  // Show sentence with blank
   const sentence = ex.e.replace('___', '<span class="blank">______</span>');
   document.getElementById('fb-sentence').innerHTML = sentence;
-  document.getElementById('fb-hint').textContent = `提示：${w.d}（${w.w.length} 个字母）`;
 
-  const input = document.getElementById('fb-input');
-  input.value = '';
-  input.className = 'spell-input';
-  input.style.display = '';
-  input.focus();
-  document.querySelector('#fb-card .spell-submit').style.display = '';
+  // Build letter boxes
+  renderFbLetters(word);
+
+  // Show hint info: POS + Chinese definition
+  const pos = POS[word] || '';
+  const phonetic = PHONETICS[word] || '';
+  let hintHtml = '';
+  if (pos) hintHtml += `<span class="fb-pos">${pos}</span>`;
+  if (phonetic) hintHtml += `<span style="color:#94a3b8;font-size:13px;margin-right:8px;">${phonetic}</span>`;
+  hintHtml += `<span class="fb-def">${w.d}</span>`;
+  hintHtml += `<span style="color:#94a3b8;font-size:12px;margin-left:6px;">(${word.length} 字母)</span>`;
+  document.getElementById('fb-hint-info').innerHTML = hintHtml;
+
+  // Show collocations (with target word hidden)
+  const colls = ex.c || [];
+  if (colls.length > 0) {
+    const chipHtml = colls.map(c => {
+      const enHidden = c.en.replace(new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '___');
+      return `<span class="fb-coll-chip">${enHidden}<span class="zh">${c.zh}</span></span>`;
+    }).join('');
+    document.getElementById('fb-collocations').innerHTML = chipHtml;
+  } else {
+    document.getElementById('fb-collocations').innerHTML = '';
+  }
+
+  // Reset UI
+  document.querySelector('.fb-actions').style.display = '';
   document.getElementById('fb-feedback').textContent = '';
   document.getElementById('fb-next').classList.add('hidden');
   document.getElementById('fb-skip').classList.remove('hidden');
+  document.getElementById('fb-hint-btn').disabled = false;
+  document.getElementById('fb-submit-btn').disabled = false;
+  document.getElementById('fb-detail').classList.add('hidden');
   document.getElementById('fb-counter').textContent = `第 ${fbIndex + 1} 题 / 共 ${fbQueue.length} 题 · 正确 ${fbCorrect}`;
   document.getElementById('fb-progress').style.width = `${(fbIndex / fbQueue.length) * 100}%`;
+
+  // Focus hidden input
+  const input = document.getElementById('fb-input');
+  input.value = '';
+  input.focus();
+}
+
+function renderFbLetters(word) {
+  const container = document.getElementById('fb-letters');
+  container.innerHTML = '';
+  for (let i = 0; i < word.length; i++) {
+    const box = document.createElement('div');
+    box.className = 'fb-letter-box';
+    box.id = 'fb-lb-' + i;
+    container.appendChild(box);
+  }
+}
+
+function updateFbLetters() {
+  const idx = fbQueue[fbIndex];
+  const word = WORDS[idx].w.toLowerCase();
+  const len = word.length;
+  // Combine revealed and typed letters
+  for (let i = 0; i < len; i++) {
+    const box = document.getElementById('fb-lb-' + i);
+    if (!box) continue;
+    box.className = 'fb-letter-box';
+    box.textContent = '';
+    if (i < fbRevealed) {
+      // Hint-revealed letter
+      box.textContent = word[i];
+      box.classList.add('revealed');
+    } else if (i - fbRevealed < fbTyped.length) {
+      // User-typed letter
+      box.textContent = fbTyped[i - fbRevealed];
+      box.classList.add('filled');
+    }
+    // Mark active box
+    if (!fbAnswered && i === fbRevealed + fbTyped.length) {
+      box.classList.add('active');
+    }
+  }
+}
+
+// Setup hidden input listener
+(function() {
+  const input = document.getElementById('fb-input');
+  input.addEventListener('input', () => {
+    if (fbAnswered || currentMode !== 'fillblank') return;
+    const val = input.value.toLowerCase().replace(/[^a-z]/g, '');
+    input.value = val;
+    fbTyped = val;
+    updateFbLetters();
+    // Auto-submit if all boxes filled
+    const idx = fbQueue[fbIndex];
+    const word = WORDS[idx].w.toLowerCase();
+    if (fbRevealed + fbTyped.length >= word.length) {
+      // All filled, don't auto-submit, just let user see
+    }
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && fbTyped.length === 0 && fbRevealed > 0) {
+      // Allow "un-revealing" last hint? No, hints are permanent.
+      e.preventDefault();
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!fbAnswered) checkFillBlank();
+      else nextFillBlank();
+    }
+  });
+  // Click on letter boxes focuses input
+  document.getElementById('fb-letters').addEventListener('click', () => {
+    input.focus();
+  });
+})();
+
+function revealFbLetter() {
+  if (fbAnswered || fbIndex >= fbQueue.length) return;
+  const idx = fbQueue[fbIndex];
+  const word = WORDS[idx].w.toLowerCase();
+  if (fbRevealed >= word.length - 1) return; // Leave at least 1 to guess
+  // Clear any typed letters that overlap with new reveal
+  fbRevealed++;
+  // Trim typed letters that now overlap with revealed
+  if (fbTyped.length > 0) {
+    fbTyped = fbTyped.slice(1); // Remove first typed char since reveal pushed forward
+    if (fbTyped.length < 0) fbTyped = '';
+  }
+  document.getElementById('fb-input').value = fbTyped;
+  updateFbLetters();
+  // Disable hint if only 1 letter left
+  if (fbRevealed >= word.length - 1) {
+    document.getElementById('fb-hint-btn').disabled = true;
+  }
 }
 
 function checkFillBlank() {
@@ -3977,29 +4275,82 @@ function checkFillBlank() {
   const idx = fbQueue[fbIndex];
   const w = WORDS[idx];
   const ex = EXTRAS[idx];
-  const input = document.getElementById('fb-input');
-  const answer = input.value.trim().toLowerCase();
-  const correct = w.w.toLowerCase();
+  const word = w.w.toLowerCase();
 
-  fbAnswered = true;
-
-  // Show the filled sentence
-  const filledSentence = ex.e.replace('___', `<span class="blank" style="color:var(--success);border-color:var(--success);">${w.w}</span>`);
-  document.getElementById('fb-sentence').innerHTML = filledSentence;
-
-  if (answer === correct) {
-    fbCorrect++;
-    input.classList.add('correct');
-    document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--success);font-weight:600;">正确！</span>`;
-    markResult(idx, true);
-  } else {
-    input.classList.add('wrong');
-    document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--danger);">正确答案：<strong>${w.w}</strong></span>`;
-    markResult(idx, false);
+  // Build the full answer: revealed + typed
+  let answer = '';
+  for (let i = 0; i < word.length; i++) {
+    if (i < fbRevealed) answer += word[i];
+    else if (i - fbRevealed < fbTyped.length) answer += fbTyped[i - fbRevealed];
+    else answer += '';
+  }
+  // If not all filled, treat as incomplete
+  if (answer.length < word.length) {
+    document.getElementById('fb-feedback').innerHTML = '<span style="color:#f59e0b;">请填完所有字母格</span>';
+    return;
   }
 
+  fbAnswered = true;
+  const isCorrect = answer === word;
+
+  // Show letter box results
+  for (let i = 0; i < word.length; i++) {
+    const box = document.getElementById('fb-lb-' + i);
+    if (!box) continue;
+    box.textContent = word[i];
+    box.className = 'fb-letter-box';
+    if (isCorrect || answer[i] === word[i]) {
+      box.classList.add('correct');
+    } else {
+      box.classList.add('wrong');
+    }
+  }
+
+  // Update sentence with answer
+  const color = isCorrect ? 'var(--success)' : 'var(--danger)';
+  const filledSentence = ex.e.replace('___', `<span class="blank" style="color:${color};border-color:${color};">${w.w}</span>`);
+  document.getElementById('fb-sentence').innerHTML = filledSentence;
+
+  // Disable buttons
+  document.getElementById('fb-hint-btn').disabled = true;
+  document.getElementById('fb-submit-btn').disabled = true;
+
+  if (isCorrect) {
+    fbCorrect++;
+    document.getElementById('fb-feedback').innerHTML = '<span style="color:var(--success);font-weight:600;">正确！</span>';
+    markResult(idx, true);
+    // Auto-advance after 800ms
+    setTimeout(() => { fbIndex++; showFillBlankQuestion(); }, 800);
+  } else {
+    document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--danger);">正确答案：<strong>${w.w}</strong></span>`;
+    markResult(idx, false);
+    // Show card detail
+    showFbCardDetail(idx);
+    document.getElementById('fb-next').classList.remove('hidden');
+  }
   document.getElementById('fb-counter').textContent = `第 ${fbIndex + 1} 题 / 共 ${fbQueue.length} 题 · 正确 ${fbCorrect}`;
-  document.getElementById('fb-next').classList.remove('hidden');
+}
+
+function showFbCardDetail(wordIdx) {
+  const w = WORDS[wordIdx];
+  const ex = EXTRAS[wordIdx];
+  const phonetic = PHONETICS[w.w] || '';
+  const pos = POS[w.w] || '';
+  const derivs = DERIVATIVES[wordIdx] || '';
+  let html = '<div class="quiz-card-inner">';
+  html += `<div style="font-size:22px;font-weight:700;margin-bottom:4px;">${w.w}</div>`;
+  if (phonetic || pos) html += `<div style="font-size:13px;color:var(--text-light);margin-bottom:10px;">${phonetic} ${pos}</div>`;
+  html += `<div class="definition" style="font-size:15px;">${w.d}</div>`;
+  if (ex.c && ex.c.length) {
+    html += '<div style="margin-top:10px;font-size:13px;color:var(--text-light);">';
+    html += ex.c.map(c => `${c.en} <span style="color:#94a3b8">${c.zh}</span>`).join(' · ');
+    html += '</div>';
+  }
+  if (derivs) html += `<div style="margin-top:8px;font-size:12px;color:#94a3b8;">派生：${derivs}</div>`;
+  html += '</div>';
+  const detail = document.getElementById('fb-detail');
+  detail.innerHTML = html;
+  detail.classList.remove('hidden');
 }
 
 function showFillBlankAnswer() {
@@ -4007,14 +4358,32 @@ function showFillBlankAnswer() {
   const idx = fbQueue[fbIndex];
   const w = WORDS[idx];
   const ex = EXTRAS[idx];
+  const word = w.w.toLowerCase();
   fbAnswered = true;
+
+  // Show all letters as wrong (since user didn't get it)
+  for (let i = 0; i < word.length; i++) {
+    const box = document.getElementById('fb-lb-' + i);
+    if (!box) continue;
+    box.textContent = word[i];
+    box.className = 'fb-letter-box';
+    if (i < fbRevealed) {
+      box.classList.add('revealed');
+    } else {
+      box.classList.add('wrong');
+    }
+  }
 
   const filledSentence = ex.e.replace('___', `<span class="blank" style="color:var(--danger);border-color:var(--danger);">${w.w}</span>`);
   document.getElementById('fb-sentence').innerHTML = filledSentence;
-  document.getElementById('fb-input').classList.add('wrong');
-  document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--danger);">答案：<strong>${w.w}</strong> — ${w.d}</span>`;
+  document.getElementById('fb-feedback').innerHTML = `<span style="color:var(--danger);">答案：<strong>${w.w}</strong></span>`;
+  document.getElementById('fb-hint-btn').disabled = true;
+  document.getElementById('fb-submit-btn').disabled = true;
   markResult(idx, false);
+  showFbCardDetail(idx);
   document.getElementById('fb-next').classList.remove('hidden');
+  document.getElementById('fb-skip').classList.add('hidden');
+  document.getElementById('fb-counter').textContent = `第 ${fbIndex + 1} 题 / 共 ${fbQueue.length} 题 · 正确 ${fbCorrect}`;
 }
 
 function nextFillBlank() {
