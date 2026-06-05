@@ -1176,21 +1176,26 @@ function getDerivativesHtml(word) {
 
 // ============ INIT ============
 function init() {
-  // Restore dropdown states from saved session
-  const raw = store.get('awl570_fc_session');
-  if (raw) {
-    try {
-      const session = JSON.parse(raw);
-      if (session.sublist !== undefined) {
-        currentSublist = Number(session.sublist);
-        document.getElementById('sublist-filter').value = String(session.sublist);
-      }
-      if (session.studyMode !== undefined) {
-        currentStudyMode = String(session.studyMode);
-        document.getElementById('study-mode').value = String(session.studyMode);
-      }
-      console.log('[init] restored dropdowns: sublist=', currentSublist, 'mode=', currentStudyMode);
-    } catch (e) { console.log('[init] error parsing session:', e); }
+  // Restore dropdown states from any saved session
+  const sessionKeys = ['awl570_fc_session', 'awl570_quiz_session', 'awl570_spelling_session', 'awl570_fillblank_session'];
+  let restored = false;
+  for (const key of sessionKeys) {
+    const raw = store.get(key);
+    if (raw && !restored) {
+      try {
+        const session = JSON.parse(raw);
+        if (session.sublist !== undefined) {
+          currentSublist = Number(session.sublist);
+          document.getElementById('sublist-filter').value = String(session.sublist);
+        }
+        if (session.studyMode !== undefined) {
+          currentStudyMode = String(session.studyMode);
+          document.getElementById('study-mode').value = String(session.studyMode);
+        }
+        restored = true;
+        console.log('[init] restored dropdowns from', key, ': sublist=', currentSublist, 'mode=', currentStudyMode);
+      } catch (e) { console.log('[init] error parsing', key, ':', e); }
+    }
   }
   updateStats();
   switchMode('flashcard');
@@ -1271,22 +1276,29 @@ function switchMode(mode) {
   else if (mode === 'original') renderOriginal();
 }
 
+function clearAllSessions() {
+  store.remove('awl570_fc_session');
+  clearModeSession('quiz');
+  clearModeSession('spelling');
+  clearModeSession('fillblank');
+}
+
 function onFilterChange() {
   currentSublist = parseInt(document.getElementById('sublist-filter').value);
-  store.remove('awl570_fc_session');
+  clearAllSessions();
   switchMode(currentMode);
 }
 
 function onStudyModeChange() {
   currentStudyMode = document.getElementById('study-mode').value;
-  store.remove('awl570_fc_session');
+  clearAllSessions();
   switchMode(currentMode);
 }
 
 function resetProgress() {
   if (confirm('确定要重置所有学习进度吗？此操作不可撤销。')) {
     progress = {};
-    store.remove('awl570_fc_session');
+    clearAllSessions();
     saveProgress();
     updateStats();
     switchMode(currentMode);
@@ -1365,6 +1377,36 @@ function restoreFcSession() {
     console.log('[session] restored successfully, fcIndex =', fcIndex, 'queueLen =', fcQueue.length);
     return true;
   } catch (e) { console.log('[session] parse error:', e); return false; }
+}
+
+// ============ GENERIC MODE SESSION (quiz, spelling, fill-blank) ============
+function saveModeSession(mode, queue, index, correct) {
+  const session = {
+    sublist: Number(currentSublist),
+    studyMode: String(currentStudyMode),
+    mode: mode,
+    queue: queue,
+    index: index,
+    correct: correct
+  };
+  store.set('awl570_' + mode + '_session', JSON.stringify(session));
+}
+
+function restoreModeSession(mode) {
+  const raw = store.get('awl570_' + mode + '_session');
+  if (!raw) return null;
+  try {
+    const session = JSON.parse(raw);
+    if (Number(session.sublist) !== Number(currentSublist)) return null;
+    if (String(session.studyMode) !== String(currentStudyMode)) return null;
+    if (!Array.isArray(session.queue) || session.queue.length === 0) return null;
+    if (session.index < 0 || session.index > session.queue.length) return null;
+    return { queue: session.queue, index: session.index, correct: session.correct || 0 };
+  } catch (e) { return null; }
+}
+
+function clearModeSession(mode) {
+  store.remove('awl570_' + mode + '_session');
 }
 
 function buildFcQueue() {
@@ -1519,6 +1561,20 @@ function markCard(known) {
 
 // ============ QUIZ ============
 function startQuiz() {
+  document.getElementById('qz-result').classList.add('hidden');
+  document.querySelector('#mode-quiz .quiz-area').classList.remove('hidden');
+
+  // Try to restore saved quiz session
+  const saved = restoreModeSession('quiz');
+  if (saved) {
+    qzQuestions = saved.queue;
+    qzIndex = saved.index;
+    qzCorrect = saved.correct;
+    qzAnswered = false;
+    showQuizQuestion();
+    return;
+  }
+
   let indices = getFilteredIndices();
   if (indices.length < 4) {
     document.getElementById('qz-question').textContent = '词汇数量不足，请选择更多词汇';
@@ -1529,8 +1585,6 @@ function startQuiz() {
   qzIndex = 0;
   qzCorrect = 0;
   qzAnswered = false;
-  document.getElementById('qz-result').classList.add('hidden');
-  document.querySelector('#mode-quiz .quiz-area').classList.remove('hidden');
   showQuizQuestion();
 }
 
@@ -1539,6 +1593,7 @@ function showQuizQuestion() {
     showQuizResult();
     return;
   }
+  saveModeSession('quiz', qzQuestions, qzIndex, qzCorrect);
   const idx = qzQuestions[qzIndex];
   const w = WORDS[idx];
   qzAnswered = false;
@@ -1628,6 +1683,7 @@ function nextQuizQuestion() {
 }
 
 function showQuizResult() {
+  clearModeSession('quiz');
   document.querySelector('#mode-quiz .quiz-area').classList.add('hidden');
   const pct = Math.round((qzCorrect / qzQuestions.length) * 100);
   document.getElementById('qz-score').textContent = pct + '%';
@@ -1639,6 +1695,17 @@ function showQuizResult() {
 
 // ============ SPELLING ============
 function startSpelling() {
+  // Try to restore saved spelling session
+  const saved = restoreModeSession('spelling');
+  if (saved) {
+    spQueue = saved.queue;
+    spIndex = saved.index;
+    spCorrect = saved.correct;
+    spAnswered = false;
+    showSpellingQuestion();
+    return;
+  }
+
   let indices = getFilteredIndices();
   if (indices.length === 0) {
     document.getElementById('sp-def').textContent = '没有符合条件的词汇';
@@ -1653,6 +1720,7 @@ function startSpelling() {
 
 function showSpellingQuestion() {
   if (spIndex >= spQueue.length) {
+    clearModeSession('spelling');
     document.getElementById('sp-def').textContent = '练习完成!';
     document.getElementById('sp-input').classList.add('hidden');
     document.querySelector('.spell-submit').classList.add('hidden');
@@ -1664,6 +1732,7 @@ function showSpellingQuestion() {
     document.getElementById('sp-progress').style.width = '100%';
     return;
   }
+  saveModeSession('spelling', spQueue, spIndex, spCorrect);
 
   const idx = spQueue[spIndex];
   const w = WORDS[idx];
@@ -1738,6 +1807,19 @@ let fbAnswered = false;
 const FB_COUNT = 20;
 
 function startFillBlank() {
+  document.getElementById('fb-input').style.display = '';
+
+  // Try to restore saved fill-blank session
+  const saved = restoreModeSession('fillblank');
+  if (saved) {
+    fbQueue = saved.queue;
+    fbIndex = saved.index;
+    fbCorrect = saved.correct;
+    fbAnswered = false;
+    showFillBlankQuestion();
+    return;
+  }
+
   let indices = getFilteredIndices();
   // Filter to only words that have example sentences with blanks
   indices = indices.filter(i => EXTRAS[i] && EXTRAS[i].e.includes('___'));
@@ -1750,12 +1832,12 @@ function startFillBlank() {
   fbIndex = 0;
   fbCorrect = 0;
   fbAnswered = false;
-  document.getElementById('fb-input').style.display = '';
   showFillBlankQuestion();
 }
 
 function showFillBlankQuestion() {
   if (fbIndex >= fbQueue.length) {
+    clearModeSession('fillblank');
     document.getElementById('fb-sentence').innerHTML = '<span style="color:var(--primary);font-weight:700;font-size:22px;">练习完成!</span>';
     document.getElementById('fb-hint').textContent = '';
     document.getElementById('fb-input').style.display = 'none';
@@ -1767,6 +1849,7 @@ function showFillBlankQuestion() {
     document.getElementById('fb-progress').style.width = '100%';
     return;
   }
+  saveModeSession('fillblank', fbQueue, fbIndex, fbCorrect);
 
   const idx = fbQueue[fbIndex];
   const w = WORDS[idx];
