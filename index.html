@@ -4194,6 +4194,38 @@ let ebSheetOpen = false;
 
 const EB_TYPE_LABELS = { vocabulary: '词汇选择', cloze: '完型填空', ordering: '排序题', reading: '阅读理解' };
 
+function saveExamSession() {
+  store.set('awl570_exam_session', JSON.stringify({
+    setIdx: ebSetIdx,
+    index: ebIndex,
+    correct: ebCorrect,
+    status: ebStatus
+  }));
+}
+
+function restoreExamSession() {
+  const raw = store.get('awl570_exam_session');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    if (s.setIdx < 0 || s.setIdx >= QUIZ_BANK.sets.length) return false;
+    if (!Array.isArray(s.status)) return false;
+    ebSetIdx = s.setIdx;
+    ebQuestions = QUIZ_BANK.sets[ebSetIdx].questions;
+    ebIndex = s.index || 0;
+    ebCorrect = s.correct || 0;
+    ebStatus = s.status;
+    // Validate
+    if (ebStatus.length !== ebQuestions.length) return false;
+    if (ebIndex >= ebQuestions.length) ebIndex = 0;
+    return true;
+  } catch (e) { return false; }
+}
+
+function clearExamSession() {
+  store.remove('awl570_exam_session');
+}
+
 function initExamBank() {
   const select = document.getElementById('eb-set-select');
   if (select.options.length <= 1) {
@@ -4204,6 +4236,21 @@ function initExamBank() {
       select.appendChild(opt);
     });
   }
+
+  // Try to restore saved exam session
+  if (restoreExamSession()) {
+    select.value = String(ebSetIdx);
+    ebSheetOpen = false;
+    ebAnswered = false;
+    document.getElementById('eb-area').classList.remove('hidden');
+    document.getElementById('eb-result').classList.add('hidden');
+    document.getElementById('eb-answer-sheet').classList.add('hidden');
+    document.getElementById('eb-sheet-arrow').classList.remove('open');
+    renderAnswerSheet();
+    showExamQuestion();
+    return;
+  }
+
   document.getElementById('eb-area').classList.add('hidden');
   document.getElementById('eb-result').classList.add('hidden');
   document.getElementById('eb-counter').textContent = '';
@@ -4230,6 +4277,7 @@ function startExamBank() {
   document.getElementById('eb-answer-sheet').classList.add('hidden');
   document.getElementById('eb-sheet-arrow').classList.remove('open');
   renderAnswerSheet();
+  saveExamSession();
   showExamQuestion();
 }
 
@@ -4266,6 +4314,7 @@ function toggleAnswerSheet() {
 function jumpToQuestion(idx) {
   if (idx < 0 || idx >= ebQuestions.length) return;
   ebIndex = idx;
+  saveExamSession();
   showExamQuestion();
 }
 
@@ -4370,22 +4419,24 @@ function answerExam(optIdx) {
     `第 ${ebIndex + 1} 题 / 共 ${ebQuestions.length} 题 · 已答 ${answered} · 正确 ${ebCorrect}`;
   document.getElementById('eb-progress').style.width = `${(answered / ebQuestions.length) * 100}%`;
   renderAnswerSheet();
+  saveExamSession();
 
   // Auto-advance after short delay if correct
   if (ebStatus[ebIndex] === 'correct' && ebIndex < ebQuestions.length - 1) {
-    setTimeout(() => { ebIndex++; showExamQuestion(); }, 600);
+    setTimeout(() => { ebIndex++; saveExamSession(); showExamQuestion(); }, 600);
   } else if (ebIndex >= ebQuestions.length - 1 && answered === ebQuestions.length) {
     setTimeout(() => showExamResult(), 800);
   }
 }
 
 function prevExamQuestion() {
-  if (ebIndex > 0) { ebIndex--; showExamQuestion(); }
+  if (ebIndex > 0) { ebIndex--; saveExamSession(); showExamQuestion(); }
 }
 
 function nextExamQuestion() {
   if (ebIndex < ebQuestions.length - 1) {
     ebIndex++;
+    saveExamSession();
     showExamQuestion();
   } else {
     const answered = ebStatus.filter(s => s !== null).length;
@@ -4400,6 +4451,7 @@ function nextExamQuestion() {
 }
 
 function showExamResult() {
+  clearExamSession();
   document.getElementById('eb-area').classList.add('hidden');
   const pct = Math.round((ebCorrect / ebQuestions.length) * 100);
   document.getElementById('eb-score').textContent = pct + '%';
