@@ -1085,28 +1085,20 @@ const store = (() => {
         api.removeItem(testKey);
         backend = api;
         backendName = name;
-        console.log('[store] using', name);
         break;
       }
-    } catch (e) {
-      console.log('[store]', name, 'unavailable:', e.message);
-    }
+    } catch (e) {}
   }
   return {
     name: backendName,
     get(key) { return backend ? backend.getItem(key) : null; },
     set(key, val) {
-      if (!backend) { console.warn('[store] no storage available!'); return false; }
+      if (!backend) return false;
       try {
         backend.setItem(key, val);
-        // Verify write
-        if (backend.getItem(key) !== val) {
-          console.warn('[store] write verification FAILED for', key);
-          return false;
-        }
+        if (backend.getItem(key) !== val) return false;
         return true;
       } catch (e) {
-        console.warn('[store] setItem failed for', key, ':', e.message);
         return false;
       }
     },
@@ -1193,8 +1185,7 @@ function init() {
           document.getElementById('study-mode').value = String(session.studyMode);
         }
         restored = true;
-        console.log('[init] restored dropdowns from', key, ': sublist=', currentSublist, 'mode=', currentStudyMode);
-      } catch (e) { console.log('[init] error parsing', key, ':', e); }
+      } catch (e) {}
     }
   }
   updateStats();
@@ -1335,48 +1326,25 @@ function saveFcSession() {
     wrongWords: fcWrongWords,
     reviewRound: fcReviewRound
   };
-  const ok = store.set('awl570_fc_session', JSON.stringify(session));
-  console.log('[saveFcSession] saved:', ok, 'sublist=', session.sublist, 'mode=', session.studyMode, 'index=', session.index, 'queueLen=', session.queue.length, 'backend=', store.name);
+  store.set('awl570_fc_session', JSON.stringify(session));
 }
 
 function restoreFcSession() {
   const raw = store.get('awl570_fc_session');
-  if (!raw) { console.log('[session] no session in storage (backend=' + store.name + ')'); return false; }
+  if (!raw) return false;
   try {
     const session = JSON.parse(raw);
-    const sessionSublist = Number(session.sublist);
-    const currentSub = Number(currentSublist);
-    const sessionMode = String(session.studyMode || 'all');
-    const currentMode2 = String(currentStudyMode);
-
-    console.log('[session] restore check:', {
-      sessionSublist, currentSublist: currentSub,
-      sessionMode, currentMode: currentMode2,
-      queueLen: session.queue ? session.queue.length : 0,
-      savedIndex: session.index
-    });
-
-    if (sessionSublist !== currentSub || sessionMode !== currentMode2) {
-      console.log('[session] sublist/mode mismatch, rejecting');
-      return false;
-    }
-    if (!Array.isArray(session.queue) || session.queue.length === 0) {
-      console.log('[session] invalid queue, rejecting');
-      return false;
-    }
-    if (session.index < 0 || session.index > session.queue.length) {
-      console.log('[session] index out of range, rejecting');
-      return false;
-    }
-    // If index === queue.length, the round was completed; let showFlashcard handle it
+    if (Number(session.sublist) !== Number(currentSublist)) return false;
+    if (String(session.studyMode || 'all') !== String(currentStudyMode)) return false;
+    if (!Array.isArray(session.queue) || session.queue.length === 0) return false;
+    if (session.index < 0 || session.index > session.queue.length) return false;
     fcQueue = session.queue;
     fcIndex = session.index;
     fcWrongWords = session.wrongWords || [];
     fcReviewRound = session.reviewRound || 0;
     fcFlipped = false;
-    console.log('[session] restored successfully, fcIndex =', fcIndex, 'queueLen =', fcQueue.length);
     return true;
-  } catch (e) { console.log('[session] parse error:', e); return false; }
+  } catch (e) { return false; }
 }
 
 // ============ GENERIC MODE SESSION (quiz, spelling, fill-blank) ============
@@ -1439,12 +1407,8 @@ function getOverallProgress() {
 }
 
 function initFlashcard() {
-  // Try to restore saved session first
-  const restored = restoreFcSession();
-  console.log('[initFlashcard] restored =', restored, 'fcIndex =', fcIndex, 'queueLen =', fcQueue.length);
-  if (!restored) {
+  if (!restoreFcSession()) {
     buildFcQueue();
-    console.log('[initFlashcard] built new queue, queueLen =', fcQueue.length);
   }
   showFlashcard();
 }
