@@ -652,7 +652,7 @@
     margin-bottom: 14px;
   }
   .eb-area .quiz-question .q-text {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
     line-height: 1.6;
     color: #1e293b;
@@ -3314,7 +3314,9 @@ function init() {
     }
   }
   updateStats();
-  switchMode('flashcard');
+  const savedMode = store.get('awl570_current_mode');
+  const validModes = ['flashcard','quiz','spelling','wordlist','fillblank','original','exambank'];
+  switchMode(validModes.includes(savedMode) ? savedMode : 'flashcard');
 }
 
 function saveProgress() {
@@ -3376,6 +3378,7 @@ function shuffle(arr) {
 // ============ MODE SWITCHING ============
 function switchMode(mode) {
   currentMode = mode;
+  store.set('awl570_current_mode', mode);
   const modes = ['flashcard','quiz','spelling','wordlist','fillblank','original','exambank'];
   document.querySelectorAll('.nav-btn').forEach((btn, i) => {
     btn.classList.toggle('active', modes[i] === mode);
