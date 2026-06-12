@@ -2226,20 +2226,22 @@
     font-weight: 800;
   }
 
-  /* --- Staggered Entrance Animation --- */
+  /* --- Staggered Entrance Animation (only with motion preference) --- */
   @keyframes fadeSlideIn {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .header { animation: fadeSlideIn 0.4s ease 0s both; }
-  .nav { animation: fadeSlideIn 0.4s ease 0.05s both; }
-  .controls { animation: fadeSlideIn 0.4s ease 0.1s both; }
-  .flashcard-container { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.15s both; }
-  .flashcard-actions { animation: fadeSlideIn 0.4s ease 0.2s both; }
-  .quiz-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
-  .spell-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
-  .fb-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
-  .eb-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
+  @media (prefers-reduced-motion: no-preference) {
+    .js-ready .header { animation: fadeSlideIn 0.4s ease 0s both; }
+    .js-ready .nav { animation: fadeSlideIn 0.4s ease 0.05s both; }
+    .js-ready .controls { animation: fadeSlideIn 0.4s ease 0.1s both; }
+    .js-ready .flashcard-container { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.15s both; }
+    .js-ready .flashcard-actions { animation: fadeSlideIn 0.4s ease 0.2s both; }
+    .js-ready .quiz-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
+    .js-ready .spell-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
+    .js-ready .fb-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
+    .js-ready .eb-area { animation: fadeSlideIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s both; }
+  }
 
   /* --- Enhanced Responsive Breakpoints (Mobile-First) --- */
   @media (max-width: 480px) {
@@ -2304,8 +2306,10 @@
   }
 
   /* --- Smooth Transitions for Mode Switching --- */
-  .main > div:not(.hidden) {
-    animation: fadeSlideIn 0.4s cubic-bezier(0.34, 1.1, 0.64, 1) both;
+  @media (prefers-reduced-motion: no-preference) {
+    .js-ready .main > div:not(.hidden) {
+      animation: fadeSlideIn 0.4s cubic-bezier(0.34, 1.1, 0.64, 1) both;
+    }
   }
 </style>
 </head>
@@ -4422,6 +4426,7 @@ function getDerivativesHtml(word) {
 
 // ============ INIT ============
 function init() {
+  document.body.classList.add('js-ready');
   // Restore dropdown states from any saved session
   const sessionKeys = ['awl570_fc_session', 'awl570_quiz_session', 'awl570_spelling_session', 'awl570_fillblank_session'];
   let restored = false;
