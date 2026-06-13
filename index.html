@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AWL 570 学术词汇背诵助手</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
   :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
@@ -1400,7 +1402,6 @@
      VISUAL ENHANCEMENT LAYER v2.0
      Applied via frontend-design & responsive-design skills
      ================================================================ */
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
   /* --- Enhanced CSS Variables --- */
   :root {
@@ -1441,18 +1442,7 @@
     font-family: var(--font-display);
   }
 
-  /* --- Subtle Background Pattern --- */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 80%, rgba(167,139,250,0.03) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: -1;
-  }
+  /* --- Subtle Background (removed fixed overlay to avoid blur) --- */
 
   /* --- Enhanced Header --- */
   .header {
@@ -1482,9 +1472,9 @@
     z-index: 1;
   }
   .header-stats span {
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border: 1px solid rgba(255,255,255,0.1);
     font-family: var(--font-body);
     font-weight: 500;
@@ -1503,9 +1493,7 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     top: 0;
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255,255,255,0.95);
     border-bottom: 1px solid rgba(226,232,240,0.6);
   }
   .nav::-webkit-scrollbar { display: none; }
@@ -2295,7 +2283,6 @@
     .eb-nav, .fb-actions, .fb-bottom-actions { display: none !important; }
     .main { padding: 0 !important; max-width: 100% !important; }
     .flashcard-face { box-shadow: none !important; border: 2px solid #ccc !important; }
-    body::before { display: none; }
   }
 
   /* --- Focus Visible for Accessibility --- */
