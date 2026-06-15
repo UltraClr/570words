@@ -73,7 +73,7 @@ python3 -m http.server 8080
 
 ## 数据来源
 
-- **AWL 词族列表**：基于 Averil Coxhead 的 [Academic Word List](https://www.wgtn.ac.nz/lals/resources/academic-word-list)
+- **词汇列表及中文释义**：来自国科大（UCAS）课程资料《学术词汇570词（带中文释义）》
 - **音标**：IPA 国际音标
 - **题库**：基于 AWL 词汇构造的段落填空练习
 
